@@ -1,0 +1,6 @@
+# Ignorer tous les fichiers contenant "egg-info"
+*egg-info*
+
+# Ignorer les fichiers de cache Python
+__pycache__/
+*.py[cod]
