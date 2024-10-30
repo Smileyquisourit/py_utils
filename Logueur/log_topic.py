@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ---------------------------------------------------------
-# Initialisation of Logueur
+# Log messages' topic and topic filter
 # ---------------------------------------------------------
 # ./Logueur/log_level.py
 
@@ -13,7 +13,7 @@ a filter for log message's topic.
 
 import re
 import inspect
-from typing import Optional
+from typing import Optional, Union
 
 def _generateFromStack(n_frame:int) -> str:
     """
@@ -22,7 +22,7 @@ def _generateFromStack(n_frame:int) -> str:
     the function inspect.stack(). The topic start with the outermost
     frame's function, and each function name are separated by a dot.
     
-    Ignore the first 'n_frame'. 
+    Ignore the first 'n_frame'.
     """
 
     # Get the stack:
@@ -112,9 +112,19 @@ class LogTopic():
         # Save topic:
         # -----------
         self.topic = topic
+    def __repr__(self) -> str:
+        return self.topic
+    def __eq__(self,other:Union['LogTopic',str]) -> bool:
+        if not isinstance(other,(LogTopic,str)):
+            return False
+        
+        if isinstance(other,LogTopic):
+            return self.topic == other.topic
+        else:
+            return self.topic == other
 
     @classmethod
-    def topicFactory(cls, method:Optional[str], n_frame:int=1) -> 'LogTopic':
+    def topicFactory(cls, method:Optional[str], n_frame:int=2) -> 'LogTopic':
         """ Generate a log topic from the execution stack.
 
         This static method use the inspect module to inspect
@@ -153,7 +163,8 @@ class LogTopic():
             raise ValueError(f"The agument n_frame must be a int, instead I've received a '{type(n_frame)}'")
         if method and not isinstance(method,str):
             raise ValueError(f"The agument method must be a str, instead I've received a '{type(method)}'")
-        else:
+        if not method:
+            print(f"[DEBUG] setting method to 'module'")
             method = "module"
         
         # Value Check:
@@ -188,6 +199,10 @@ class LogTopicFilter():
         'filter'. The pattern used to filtrate the different log messages's
         topic is then computed by replacing the wildcards by their corresponding
         expression.
+        
+        The wildcard supported are:
+        - "*" replace one word
+        - "#" replace any number of word
 
         Arguments:
         filter : str
@@ -206,6 +221,15 @@ class LogTopicFilter():
         pattern = pattern.replace('*',r'[^\.]+')
         pattern = pattern.replace('#',r'.*')
         self.pattern = re.compile(pattern)
+    def __eq__(self,other:Union['LogTopicFilter',re.Pattern]) -> bool:
+        if not isinstance(other, (LogTopicFilter,re.Pattern)):
+            return False
+        
+        if isinstance(other,LogTopicFilter):
+            return self.pattern == other.pattern
+        
+        else:
+            return self.pattern == other
 
     def match(self,topic:LogTopic) -> bool:
         """ Check if the given topic match the filter.
@@ -226,7 +250,7 @@ class LogTopicFilter():
 
         # Match Check:
         # ------------
-        if self.pattern.match(topic.topic):
+        if self.pattern.fullmatch(topic.topic):
             return True
         else:
             return False

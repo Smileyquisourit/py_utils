@@ -10,6 +10,9 @@ Implement an abstract base class for defining an output
 for a logger. This abstract class implement how the messages
 are filtered, and define an abstract method that should define
 how a message is writted.
+
+This module also implement a log output to the console, and
+a log output to a file.
 """
 
 import os
@@ -57,13 +60,6 @@ class BaseLogHandler(ABC):
         super().__init__()
         self.level = level
         self.filter = filter
-
-        # Change doc-string:
-        # ------------------
-        # Change the docstring of the emit methode by the one of the _write
-        # methode, if there is one.
-        #if self._write.__doc__:
-        #    self.emit.__doc__ = self._write.__doc__
 
     @abstractmethod
     def _write(self,msg:LogMessage) -> None:
@@ -184,7 +180,6 @@ class ConsoleLogHandler(BaseLogHandler):
         # ------------------
         if self._supportColor:
             msg_str = f"{self._FG_COLORS[msg.level.name]}{msg}{self._FG_RS}"
-            #msg.body = self._FG_COLORS[msg.level.name] + msg.body + self._FG_RS
         else:
             msg_str = str(msg)
 

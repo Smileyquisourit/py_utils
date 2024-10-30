@@ -47,7 +47,7 @@ class LogMessage():
             raise ValueError("The msg_fmt must at least contains {body} !")
         self._msg_fmt = msg_fmt
 
-    def __init__(self, body:str, level:LogLevel, topic:LogTopic, fmt:Optional[str]) -> None:
+    def __init__(self, body:str, level:LogLevel, topic:LogTopic, fmt:Optional[str]=None) -> None:
         """ Constructor of LogMessage
 
         Construct a log message.
