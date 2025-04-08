@@ -4,16 +4,27 @@
 # ---------------------------------------------------------
 # ./Logueur/log_out.py
 
-""" Module log_out
+""" 
+==============
+Module log_out
+==============
 
-Implement an abstract base class for defining an output
-for a logger. This abstract class implement how the messages
-are filtered, and define an abstract method that should define
-how a message is writted.
+Implement an abstract base class for defining an output for a logger. This abstract class implement how the messages
+are filtered, and define an abstract method that should define how a message is writted.
 
-This module also implement a log output to the console, and
-a log output to a file.
+This module also implement a log output to the console, and a log output to a file.
+
+Objects
+-------
+
+ConsoleLogHandler:
+    Represent the interface to write log messages to the console.
+
+FileLogHandler:
+    f
 """
+
+#TODO: add a database output
 
 import os
 import sys
@@ -28,10 +39,12 @@ from .log_message import LogMessage
 
 
 class BaseLogHandler(ABC):
-    """ BaseLogOutput
+    """ 
+    =============
+    BaseLogOutput
+    =============
 
-    Implement the interface that should be provided
-    by a LogOutput class.
+    Implement the interface that should be provided by a LogOutput class.
     """
 
     def __init__(self,level:LogLevel,filter:LogTopicFilter) -> None:
@@ -40,10 +53,11 @@ class BaseLogHandler(ABC):
         An instance of this class represent the interface between the logger
         and the output of the logs.
 
-        Arguments:
-        level : LogLevel
+        Parameters
+        ----------
+        :param level LogLevel:
             The level used for filtrate log messages.
-        filter : LogTopicFilter
+        :param filter LogTopicFilter:
             The topic filtrer used for filtrate log messages.
         """
 
@@ -73,6 +87,16 @@ class BaseLogHandler(ABC):
 
         Check if the level of the message is more critical
         than the level registered, and if the topic match.
+
+        Parameters
+        ----------
+        :param msg LogMessage:
+            The message to check.
+
+        Return
+        ------
+        :return bool:
+            If the topic is valid or not.
         """
 
         # Check level:
@@ -85,11 +109,20 @@ class BaseLogHandler(ABC):
         return self.filter.match(msg.topic)
 
     def emit(self,msg:LogMessage) -> None:
-        """ Emit a message to the log
+        """ 
+        ====
+        emit
+        ====
         
-        Filtrate the message given in argument and emit it
-        if it passes the filter and has a correct log level.
+        Emit a message to the log.
         
+        Filtrate the message given in argument and emit it if it passes the filter and has a 
+        correct log level.
+        
+        Parameters
+        ----------
+        :param msg LogMessage:
+            The message to emit.
         """
 
         # Change the docstring of the emit methode by the one of the _write
@@ -109,9 +142,18 @@ class BaseLogHandler(ABC):
 
 
 class ConsoleLogHandler(BaseLogHandler):
-    """ ConsoleLogHandler
+    """ 
+    =================
+    ConsoleLogHandler
+    =================
 
     Represent the interface to write log messages to the console.
+
+    An instance of this class can be personalised with two options. The first one is
+    to use color when printing the message (if the terminal support it) with the 
+    `supportColor` option of the constructor, and if the instance should log the
+    `WARNING`, `ERROR`, and `FATAL` standard output of the terminal with the 
+    `useStderr` option of the constructor.
     """
 
     _FG_COLORS = {
@@ -130,15 +172,18 @@ class ConsoleLogHandler(BaseLogHandler):
         Initialize an instance of the class, that is responsible to
         print log message to the console.
 
-        Arguments:
-        level : LogLevel
+        Parameters
+        ----------
+        :param level LogLevel:
             The level used for filtrate log messages.
-        filter : LogTopicFilter
+        :param filter LogTopicFilter:
             The topic filtrer used for filtrate log messages.
-        supportColor : bool = True
+        :param supportColor bool:
             If the console support color, and if colors should be used.
-        useStderr : bool = True
+            Default to `True`
+        :param useStderr bool:
             True to use stderr for warning, error and fatal message.
+            Default to `True`
         """
 
         # Type Check:
@@ -159,15 +204,17 @@ class ConsoleLogHandler(BaseLogHandler):
 
         Print the log message to the console. If the colors are
         supported, a color will be applied to the message depending
-        on his critical level:
+        on his critical level
+
         - DEBUG   -> blue
         - INFO    -> green
         - WARNING -> yellow
         - ERROR   -> red
         - FATAL   -> red
 
-        Argument:
-        msg : LogMessage
+        Parameters
+        ----------
+        :param msg LogMessage:
             The log message to emit.
         """
 
@@ -193,9 +240,15 @@ class ConsoleLogHandler(BaseLogHandler):
         out.flush()
 
 class FileLogHandler(BaseLogHandler):
-    """ FileLogHandler
+    """ 
+    ==============
+    FileLogHandler
+    ==============
 
-    Represent the interface to write log messages to a file.
+    Represent the interface to write log messages to a file. The filename of the file in wich to 
+    write the log is specified in the constructor, altought a default one can be generated. The
+    behavior of the instance when a file with the same name already exist is determined by the 
+    `action` option of the constructor.
     """
     _actions = ["overwrite","overwrite-warn","abort","append","new"]
 
@@ -205,28 +258,30 @@ class FileLogHandler(BaseLogHandler):
         Implement the interface needed to write log messages to a log file.
 
         It's possible to indicate the filename to use when creating the log file,
-        and the 'append' argument specify what to do if a file with the same name
+        and the `action` argument specify what to do if a file with the same name
         already exist. If no name are specified, a default filename will be used,
-        following the ISO 8601 standard: 'log_YYYY-MM-DDT:HH:MM:SS'.
+        following the ISO 8601 standard: `log_YYYY-MM-DDT:HH:MM:SS`.
 
-        If the 'action' flag is used when a filename with the same name already exist,
-        and specified witch action to take:
+        When the 'action' flag is used and a filename with the same name already exist,
+        the specified action is taken:
         - 'overwrite'      -> overwrite the file without warning
         - 'overwrite-warn' -> overwrite the file with a warning
         - 'abort'          -> Abort the creation of the handler (default)
         - 'append'         -> Append next log message to the file
         - 'new'            -> Append '(n)' to the filename to create a new file
 
-        Arguments
-        level : LogLevel
+        Parameters
+        ----------
+        :param level LogLevel:
             The level used for filtrate log messages.
-        filter : LogTopicFilter
+        :param filter LogTopicFilter:
             The topic filtrer used for filtrate log messages.
-        filename : Optional[str]
+        :param filename str|None:
             The name of the log file to create, if no name is supplied, a generic
             name will be generated following ISO 8601 format: log_YYYY-MM-DDT:HH:MM:SS
-        action : str = abort
-            Flag indicating what to do if a file with the same name already exist
+        :param action str:
+            Flag indicating what to do if a file with the same name already exist.
+            Default to `abort`.
         """
 
         # Type Check:

@@ -4,10 +4,12 @@
 # ---------------------------------------------------------
 # ./Logueur/log_message.py
 
-""" Module log_topic
+""" 
+================
+Module log_topic
+================
 
-Implement the LogMessage class, encapsulating all of the 
-relevant informations of a log message.
+Implement the LogMessage class, encapsulating all of the relevant informations of a log message.
 """
 
 from typing import Optional
@@ -16,13 +18,20 @@ from .log_level import LogLevel
 from .log_topic import LogTopic
 
 class LogMessage():
-    """ LogMessage
+    """ 
+    ==========
+    LogMessage
+    ==========
 
     An instance of this class represent a log message, encapsulating
-    all of the relevant information about this peculiar message :
+    all of the relevant information about this peculiar message
+
     - It's level
     - It's topic
     - The actual message to dispay
+
+    An instance of this class also contains the format of the message to
+    be used.
     """
 
     _msg_fmt = "[{level}] {topic}\n{body}\n\n"
@@ -31,7 +40,10 @@ class LogMessage():
     def msg_fmt(self) -> str:
         """ The string to use for formatting the log message.
 
-        Should at least contains '{body}'
+        Should at least contains '{body}', and will be formatted
+        using 
+        
+        `str.format(body=self.body,level=self.level,topic=self.topic.topic)`
         """
         return self._msg_fmt
     @msg_fmt.setter
@@ -39,7 +51,9 @@ class LogMessage():
         """ The string to use for formatting the log message.
 
         Should at least contains '{body}', and will be formatted
-        using str.format(body=self.body,level=self.level,topic=self.topic.topic)
+        using 
+        
+        `str.format(body=self.body,level=self.level,topic=self.topic.topic)`
         """
         if not isinstance(msg_fmt,str):
             raise ValueError(f"The msg_fmt must a str, instead I've received a '{type(msg_fmt)}'")
@@ -50,16 +64,18 @@ class LogMessage():
     def __init__(self, body:str, level:LogLevel, topic:LogTopic, fmt:Optional[str]=None) -> None:
         """ Constructor of LogMessage
 
-        Construct a log message.
+        Construct a log message. If no format (`fmt`) is specified, the default one is used\n
+        `[{level}] {topic}\\n{body}\\n\\n`
 
-        Arguments:
-        body : str
+        parameters
+        ----------
+        :param body str:
             The message to print in the log
-        level : LogLevel
+        :param level LogLevel:
             The level of the message
-        topic : LogTopic
+        :param topic LogTopic:
             The topic of the message
-        fmt : Optional[str]
+        :param fmt str|None:
             The format to use for formatting the message
         """
 

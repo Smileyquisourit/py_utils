@@ -4,10 +4,13 @@
 # ---------------------------------------------------------
 # ./Logueur/logueur.py
 
-""" Module logueur
+""" 
+==============
+Module logueur
+==============
 
 Implement the Logueur class, used for logging messages
-to various output.
+to various output, and factury function for this class.
 """
 
 from typing import Union, Optional
@@ -18,7 +21,10 @@ from .log_topic import LogTopic, LogTopicFilter
 from .log_out import BaseLogHandler, ConsoleLogHandler, FileLogHandler
 
 class Logueur():
-    """ Logueur
+    """ 
+    =======
+    Logueur
+    =======
 
     Object for logging messages to various output. 
 
@@ -32,13 +38,28 @@ class Logueur():
     def __init__(self, output:Union[BaseLogHandler,list[BaseLogHandler]],
                  topicGenerationMethode:Optional[str]=None,
                  messageFormat:Optional[str]=None) -> None:
-        """ Constructor of Logueur
+        """ 
+        ======================
+        Constructor of Logueur
+        ======================
 
         Configure the Logueur with the different output given in argument.
 
-        Arguments:
-        output : list[BaseLogHandler]
-            The differents output to use for logging messages.
+        Parameters
+        ----------
+        :param output BaseLogHandler|list[BaseLogHandler]:
+            The destination of the log's messages. Shall be a class herited
+            of the BaseLogHandler or a list of object herited from BaseLogHandler
+            in case of mulitple destination.
+        :param topicGenerationMethod str|None:
+            A string used to determine how to generate the topic of the message.
+            Can be 'stack' or 'module', see :mod:`Logueur.log_topic`.
+        :param messageFormat str|None:
+            A string to be used to format the message before emitting it to the
+            differents output. The formatting fubnction used is `str.format` called
+            with `level=msg_level` (the level of the log entry), `body=msg_body`
+            (the text of the entry), and `topic=msg_topic` (the topic of the entry).
+            Note: the `body` must be present in the format !
         """
 
         # Type Check:
@@ -72,7 +93,20 @@ class Logueur():
         self._messageFormat = messageFormat
 
     def add_out(self, output:Union[BaseLogHandler,list[BaseLogHandler]]) -> None:
-        """ Add a log output to the logueur """
+        """ 
+        =======
+        add_out
+        =======
+
+        Manually add a log output to the logueur.
+        
+        Parameters
+        ----------
+        :param output BaseLogHandler|list[BaseLogHandler]:
+            The destination of the log's messages. Shall be a class herited
+            of the BaseLogHandler or a list of object herited from BaseLogHandler
+            in case of mulitple destination.
+        """
         # Type Check:
         # -----------
         if not isinstance(output,(BaseLogHandler,list)):
@@ -88,7 +122,18 @@ class Logueur():
         self._out.append(output)
 
     def log(self,msg:LogMessage) -> None:
-        """ Log a specific message """
+        """ 
+        ===
+        Log
+        ===
+        
+        Log a specific message.
+        
+        Parameters
+        ----------
+        :param msg LogMessage:
+            The message to log
+        """
         
         # Type Check:
         # -----------
@@ -101,11 +146,29 @@ class Logueur():
             out.emit(msg)
     
     def debug(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
-        """ Log a message with a DEBUG level
+        """ 
+        =====
+        debug
+        =====
+
+        Log a message with a DEBUG level
 
         Construct and log a debug message. If the topic isn't specified, one is
         constructed with the topicFactory class method of the LogTopic class.
         If the format isn't specified, the default one will be used.
+
+        Parameters
+        ----------
+        :param body str:
+            The text of the message.
+        :param topic str|None:
+            The topic of the message. If no topic are specified, use the topic
+            factory function of the specified `topicGenerationMethod`. Default
+            is `module`.
+        :param format str|None:
+            The format to be used when generating the message. If not specified,
+            use the format specified in the constructor (`messageFormat`). See
+            :class:`Logueur.log_message.LogMessage`.
         """
 
         # Type Check:
@@ -124,11 +187,29 @@ class Logueur():
         msg = LogMessage(body,LogLevel.DEBUG,topic,fmt=format)
         self.log(msg)
     def info(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
-        """ Log a message with a INFO level
+        """ 
+        ====
+        info
+        ====
+
+        Log a message with a INFO level
 
         Construct and log an info message. If the topic isn't specified, one is
         constructed with the topicFactory class method of the LogTopic class.
         If the format isn't specified, the default one will be used.
+
+        Parameters
+        ----------
+        :param body str:
+            The text of the message.
+        :param topic str|None:
+            The topic of the message. If no topic are specified, use the topic
+            factory function of the specified `topicGenerationMethod`. Default
+            is `module`.
+        :param format str|None:
+            The format to be used when generating the message. If not specified,
+            use the format specified in the constructor (`messageFormat`). See
+            :class:`Logueur.log_message.LogMessage`.
         """
 
         # Type Check:
@@ -147,11 +228,29 @@ class Logueur():
         msg = LogMessage(body,LogLevel.INFO,topic,fmt=format)
         self.log(msg)
     def warning(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
-        """ Log a message with a WARNING level
+        """ 
+        =======
+        warning
+        =======
+        
+        Log a message with a WARNING level
 
         Construct and log a warning message. If the topic isn't specified, one is
         constructed with the topicFactory class method of the LogTopic class.
         If the format isn't specified, the default one will be used.
+
+        Parameters
+        ----------
+        :param body str:
+            The text of the message.
+        :param topic str|None:
+            The topic of the message. If no topic are specified, use the topic
+            factory function of the specified `topicGenerationMethod`. Default
+            is `module`.
+        :param format str|None:
+            The format to be used when generating the message. If not specified,
+            use the format specified in the constructor (`messageFormat`). See
+            :class:`Logueur.log_message.LogMessage`.
         """
 
         # Type Check:
@@ -170,11 +269,29 @@ class Logueur():
         msg = LogMessage(body,LogLevel.WARNING,topic,fmt=format)
         self.log(msg)
     def error(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
-        """ Log a message with a ERROR level
+        """ 
+        =====
+        error
+        =====
+        
+        Log a message with a ERROR level
 
         Construct and log an error message. If the topic isn't specified, one is
         constructed with the topicFactory class method of the LogTopic class.
         If the format isn't specified, the default one will be used.
+
+        Parameters
+        ----------
+        :param body str:
+            The text of the message.
+        :param topic str|None:
+            The topic of the message. If no topic are specified, use the topic
+            factory function of the specified `topicGenerationMethod`. Default
+            is `module`.
+        :param format str|None:
+            The format to be used when generating the message. If not specified,
+            use the format specified in the constructor (`messageFormat`). See
+            :class:`Logueur.log_message.LogMessage`.
         """
 
         # Type Check:
@@ -193,11 +310,29 @@ class Logueur():
         msg = LogMessage(body,LogLevel.ERROR,topic,fmt=format)
         self.log(msg)
     def fatal(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
-        """ Log a message with a FATAL level
+        """ 
+        =====
+        fatal
+        =====
+        
+        Log a message with a FATAL level
 
         Construct and log a fatal message. If the topic isn't specified, one is
         constructed with the topicFactory class method of the LogTopic class.
         If the format isn't specified, the default one will be used.
+
+        Parameters
+        ----------
+        :param body str:
+            The text of the message.
+        :param topic str|None:
+            The topic of the message. If no topic are specified, use the topic
+            factory function of the specified `topicGenerationMethod`. Default
+            is `module`.
+        :param format str|None:
+            The format to be used when generating the message. If not specified,
+            use the format specified in the constructor (`messageFormat`). See
+            :class:`Logueur.log_message.LogMessage`.
         """
 
         # Type Check:
@@ -219,17 +354,30 @@ class Logueur():
 
 def ConsoleLogueurFactory(level:Union[str,LogLevel],filter:Union[str,LogTopicFilter]="#",
                           supportColor:bool=True, useStderr:bool=True) -> Logueur:
-    """ Construct a Logueur configured with an output to the console 
+    """ 
+    =====================
+    ConsoleLogueurFactory
+    =====================
     
-    Arguments:
-        level : LogLevel
-            The level used for filtrate log messages.
-        filter : LogTopicFilter
-            The topic filtrer used for filtrate log messages.
-        supportColor : bool = True
-            If the console support color, and if colors should be used.
-        useStderr : bool = True
-            True to use stderr for warning, error and fatal message.
+    Construct a Logueur configured with an output to the console.
+    
+    Parameters
+    ----------
+    :param level LogLevel:
+        The level used for filtrate log messages.
+    :param filter LogTopicFilter:
+        The topic filtrer used for filtrate log messages.
+    :param supportColor bool:
+        If the console support color, and if colors should be used.
+        Default to `True`
+    :param useStderr bool:
+        True to use stderr for warning, error and fatal message.
+        Default to `True`
+
+    Return
+    ------
+    :return out Logueur:
+        The constructed Logueur instance.
     """
 
     # Type Check:

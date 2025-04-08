@@ -4,11 +4,15 @@
 # ---------------------------------------------------------
 # ./Logueur/log_level.py
 
-""" Module log_topic
+""" 
+================
+Module log_topic
+================
 
-Implement the LogTopic class, a class representing the topic
-of a log message, and the LogTopicFilter class, a class representing
-a filter for log message's topic.
+Implement the LogTopic class, a class representing the topic of a log message, 
+and the LogTopicFilter class, a class representing a filter for log message's topic.
+
+Contains the two factory function for generating the message's topic.
 """
 
 import re
@@ -17,12 +21,25 @@ from typing import Optional, Union
 
 def _generateFromStack(n_frame:int) -> str:
     """
-    Generate the topic by concatening the 'function'
-    property of each FrameInfo of the execution stack returned by
-    the function inspect.stack(). The topic start with the outermost
-    frame's function, and each function name are separated by a dot.
+    ===================
+    Generate From Stack
+    ===================
+
+    Generate the topic by concatening the `function` property of each `FrameInfo` of the execution stack returned by
+    the function `inspect.stack()`. The topic start with the outermost frame's function, and each function name are 
+    separated by a dot.
     
-    Ignore the first 'n_frame'.
+    Ignore the first `n_frame`.
+
+    Parameters
+    ----------
+    :param n_frame int:
+        The number of frame to ignore.
+
+    Return
+    ------
+    :return str:
+        The computed topic.
     """
 
     # Get the stack:
@@ -40,14 +57,31 @@ def _generateFromStack(n_frame:int) -> str:
 
     # Concatenate the topic string:
     return ".".join(topics)
+
 def _generateFromModule(n_frame:int) -> str:
     """
-    generate the topic in the following form:
-        'module_name.class_name.methode_name' or
-        'module_name.function_name'
+    ====================
+    Generate From Module
+    ====================
 
-    The frame used to get the module, class, methode
-    or function name is specified by using n_frame
+    generate the topic in the following form
+
+    - `module_name.class_name.methode_name`
+    - `module_name.function_name`
+
+    The frame used to get the module, class, method or function name is 
+    specified by using n_frame.
+
+    Parameters
+    ----------
+    :param n_frame int:
+        The frame number from wich to get the module, class, method or
+        function name.
+
+    Return
+    ------
+    :return str:
+        The computed topic.
     """
 
     # Get the frame:
@@ -78,17 +112,19 @@ def _generateFromModule(n_frame:int) -> str:
 
 
 class LogTopic():
-    """ LogTopic
+    """ 
+    ========
+    LogTopic
+    ========
 
-    The topic of a log message. An instance of this class contains
-    the topic of a log message. This class also implement a static
-    method for generating a log topic from the execution stack.
+    The topic of a log message. An instance of this class contains the topic of a log 
+    message. This class also implement a static method for generating a log topic from 
+    the execution stack.
 
-    A topic is a string constitued of different keys, separated with
-    a dot: 'key1.key2. ... .keyN'
+    A topic is a string constitued of different keys, separated with a dot\n 
+    `key1.key2. ... .keyN`
 
-    A log message topic is like a tag, that can be used to filtrate
-    the different messages.
+    A log message topic is like a tag, that can be used to filtrate the different messages.
     """
 
     _fromMethode = ["stack","module"]
@@ -99,9 +135,10 @@ class LogTopic():
         A log message topic is like a tag, that can be used to
         filtrate the different messages.
 
-        Arguments:
-        topic : str
-            The topic of the log message
+        Parameters
+        ----------
+        :param topic str:
+            The topic of the log message.
         """
 
         # Type Check:
@@ -125,32 +162,33 @@ class LogTopic():
 
     @classmethod
     def topicFactory(cls, method:Optional[str], n_frame:int=2) -> 'LogTopic':
-        """ Generate a log topic from the execution stack.
-
-        This static method use the inspect module to inspect
-        the execution stack. It ignore the first n_frame given
-        in argument.
-
-        This function generate the topic by using 2 methods, that
-        the user can choose:
+        """ 
+        =============
+        Topic Factory
+        =============
         
-        - by 'stack': generate the topic by concatening the 'function'
-        property of each FrameInfo of the execution stack returned by
-        the function inspect.stack(). The topic start with the outermost
-        frame's function, and each function name are separated by a dot.
+        Generate a log topic from the execution stack.
 
-        - by 'module': generate the topic in the following form:
-        'module_name.class_name.methode_name' or
-        'module_name.function_name'
+        This static method use the inspect module to inspect the execution stack. It ignore the 
+        first n_frame given in argument. This function generate the topic by using 2 methods, that 
+        the user can choose
+        
+        - by `stack`: generate the topic by concatening the `function` property of each `FrameInfo` 
+        of the execution stack returned by the function `inspect.stack()`. The topic start with the 
+        outermost frame's function, and each function name are separated by a dot.
 
-        Arguments:
-        n_frame : int
-            Dependending of the methode used, represent the number of
-        frame to ignore ('stack' method) or the frame to use ('module'
-        method)
-        method : Optional[str]
-            The method to use for generating the topic. Must be member of
-        ["stack","module"]. Default is "module"
+        - by `module`: generate the topic in the following form 
+            - `module_name.class_name.methode_name` or
+            - `module_name.function_name`
+
+        Parameters
+        ----------
+        :param n_frame int:
+            Dependending of the methode used, represent the number of frame to ignore (`stack` method) 
+            or the frame to use (`module` method)
+        :param method str|None:
+            The method to use for generating the topic. Must be member of `["stack","module"]`. Default 
+            is `module`.
 
         Return:
         topic : LogTopic
@@ -164,7 +202,7 @@ class LogTopic():
         if method and not isinstance(method,str):
             raise ValueError(f"The agument method must be a str, instead I've received a '{type(method)}'")
         if not method:
-            print(f"[DEBUG] setting method to 'module'")
+            #print(f"[DEBUG] setting method to 'module'")
             method = "module"
         
         # Value Check:
@@ -182,30 +220,35 @@ class LogTopic():
         return cls(topic)
 
 class LogTopicFilter():
-    """ LogTopicFilter
+    """ 
+    ==============
+    LogTopicFilter
+    ==============
 
     Filter for log message's topic. An instance of this class enable 
     the user to exclude log message using a form of regexp.
 
-    The following wildcard are supported:
-    - '*' replace 1 key
-    - '#' replace 0 to N words
+    The following wildcard are supported
+
+    - `*` replace 1 key
+    - `#` replace 0 to N key
+
     """
 
     def __init__(self, filter:str) -> None:
         """ Constructor of LogTopicFilter
 
-        Construct an instance of LogTopicFilter with the input string
-        'filter'. The pattern used to filtrate the different log messages's
-        topic is then computed by replacing the wildcards by their corresponding
-        expression.
+        Construct an instance of LogTopicFilter with the input string `filter`. The pattern used 
+        to filtrate the different log messages's topic is then computed by replacing the wildcards 
+        by their corresponding expression.
         
         The wildcard supported are:
-        - "*" replace one word
-        - "#" replace any number of word
+        - `*` replace one key
+        - `#` replace any number of key
 
-        Arguments:
-        filter : str
+        Parameters
+        ----------
+        :param filter str:
             The string used for constructing the filter.
         """
 
@@ -232,15 +275,22 @@ class LogTopicFilter():
             return self.pattern == other
 
     def match(self,topic:LogTopic) -> bool:
-        """ Check if the given topic match the filter.
+        """ 
+        =====
+        match
+        =====
 
-        Argument:
-        topic : LogTopic
-            The topic to check
+        Check if the given topic match the filter.
 
-        Return:
-        match : bool
-            True if the topic match, False otherwise
+        Parameters
+        ----------
+        :param topic LogTopic:
+            The topic to check.
+
+        Return
+        ------
+        :return bool:
+            `True` if the topic match, `False` otherwise.
         """
 
         # Type Check:

@@ -4,7 +4,10 @@
 # ---------------------------------------------------------
 # ./Logueur/log_level.py
 
-""" Module log_level
+""" 
+================
+Module log_level
+================
 
 Implement the LogLevel class, an Enum class for the 
 differents levels supported.
@@ -17,16 +20,25 @@ class LogLevel(Enum):
     """ LogLevel
 
     Class enumerating the different levels supported for a
-    log message. The different levels are the following:
+    log message. The different levels are defined as in the following
+    table.
 
-    - DEBUG   (0) : Detailed information used for diagnostic.
-    - INFO    (1) : General information for normal operations.
-    - WARNING (2) : Indication that something unexpected happened, 
-    but the application is still running.
-    - ERROR   (3) : Serious issue that has occurred, causing some
-    part of the application to malfunction or fail.
-    - FATAL   (4) :  Critical error causing the termination of the
-    application.
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | Name    | number | Description                                                                                   |
+    +=========+========+===============================================================================================+
+    | DEBUG   | 0      | Detailed information used for diagnostic.                                                     |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | INFO    | 1      | General information for normal operations.                                                    |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | WARNING | 2      | Indication that something unexpected happened, but the application is still running.          |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | ERROR   | 3      | Serious issue that has occurred, causing some part of the application to malfunction or fail. |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | FATAL   | 4      | Critical error causing the termination of the application.                                    |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+
+    This class also implement the `==`, `!=`, `>`, `<`, `>=` and `<=` operators for comparing levels, and a factory
+    method to create one from either the number or the name.
     """
 
     DEBUG = 0
@@ -104,20 +116,23 @@ class LogLevel(Enum):
 
     @classmethod
     def factory(cls, level:Union[str,int]):
-        """ Factory method
+        """ 
+        ==============
+        Factory method
+        ==============
 
-        Return a member of the LogLevel Enum class for the
-        corresponding level. The level can be the name of
-        the level, in upper or lower case, or the number of
-        the level.
+        Return a member of the LogLevel Enum class for the corresponding level. The level can be the name of
+        the level, in upper or lower case, or the number of the level.
 
-        Argument:
-        level : Union[str,int]
-            The level to get
+        Parameters
+        ----------
+        :param level str|int:
+            The wanted level.
 
-        Return:
-        log_level : LogLevel
-            The log level wanted
+        Return
+        ------
+        :return LogLevel:
+            The log level wanted.
         """
 
         # Type Check:
