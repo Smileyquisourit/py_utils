@@ -4,4 +4,4 @@
 # ---------------------------------------------------------
 # ./__init__.py
 
-import Logueur
+from . import Logueur
