@@ -1,0 +1,9 @@
+[project]
+name = "py_utils"
+version = "0.1.1"
+description = "Different helper class and module"
+authors = [{ name = "Thibaut Derains", email = "thibaut.derains@gmail.com" }]
+requires-python = ">= 3.9"
+
+[tool.setuptools]
+packages = ["Logueur", "ConfigHelper"]
