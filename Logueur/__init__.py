@@ -44,3 +44,11 @@ from .logueur import Logueur, ConsoleLogueurFactory
 from .log_level import LogLevel
 from .log_out import ConsoleLogHandler, FileLogHandler
 from .log_topic import LogTopicFilter
+
+
+# TODO list:
+# ----------
+# - Add time to the log messages
+# - Add optionally delta time instead of / and time
+# - Add a RotaryFileHandler
+# - Add a SQLiteDataBaseHandler
