@@ -3,9 +3,8 @@
 
 # TODO list:
 # ----------
-# - Add class ConfigParam
-# - Add class ConfigSection
 # - Add Class ConfigHelper
 #
 # - Add supported type: bool (with 'on'/'off', 'True'/'False', 'true'/'false', 'yes'/'no')
 # - Add interpolation for INI format configuration, with %{SECTION:NAME}s or %{NAME}s
+# - Add verification logic for the name of a ConfigVariable

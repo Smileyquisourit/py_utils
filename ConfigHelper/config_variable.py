@@ -42,54 +42,39 @@ _VARIABLE_NAME_RE = re.compile(r"(?P<name>[^:=\s]+)")
 _VARIABLE_TYPE_RE = re.compile(r"\s*:\s*(?P<type>[^=\s]+)")
 _VARIABLE_VALUE_RE = re.compile(r"\s*=\s*(?P<value>.+)")
 
-
-class ConfigVariableValidator(ABC):
-    """
-    Abstract base class for configuration variable descriptors.
-
-    Subclasses should implement the `validate()` method to ensure the correctness
-    of any value assigned to the variable.
-
-    Implements descriptor protocol to enable per-instance variable validation and access.
-    The variable info (including value) is stored in the instance, not in the owner of the
-    instance.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self._value = None
-
-    #def __set_name__(self,owner,name):
-        # self  -> l'instance de ConfigVariableValidators ou hérité
-        # owner -> La classe (et non pas l'instance) possédant l'attribut
-        # name  -> Le nom de l'attribut dans la classe owner
-
-    def __get__(self, obj, objType=None):
-        return self._value
-    
-    def __set__(self,obj,value):
-        self._value = self.validate(value)
-
-    @abstractmethod
-    def validate(self, value):
-        """
-            Should implement the validation logic
-        """
-        pass
-
-
-class ConfigVariable(ConfigVariableValidator):
+class ConfigVariable(object):
     """
     Implementation of a configuration variable.
+ 
+    This class represent one variable configuration, and supports type validation and automatic value conversion 
+    on assignment. The verification logic is done by properties.
 
-    This class is a descriptor class, and supports type validation and automatic value conversion 
-    on assignment.
+    Once the type was set a first time (during initialisation of the instance), it can't be changed !!
     """
 
+    @property
+    def value(self) -> any:
+        return self._value
+     
+    @value.setter
+    def value(self,new_value):
+        self._value = self._validate_value(new_value)
+
+
+    @property
+    def type(self) -> any:
+        return self._type
+    
+    @type.setter
+    def type(self,new_type):
+        raise AttributeError(f"Impossible to change type to {new_type} after initialisation !")
+
+    
+ 
     def __init__(self, VariableName:str, VariableType:callable, value:any):
         """
         Concrete implementation of a configuration variable descriptor.
-
+ 
         Parameters
         ----------
         :param VariableName str: 
@@ -99,75 +84,109 @@ class ConfigVariable(ConfigVariableValidator):
         :param value any: 
             The initial value to assign, which will be validated and converted.
         """
-
+ 
         self._name = VariableName
-        self._type = VariableType
-        self._value = self.validate(value)
+        self._type = self._validate_type(VariableType)
+        self._value = self._validate_value(value)
 
-    def __str__(self) -> str:
+    def __repr__(self):
         return f"{self._name}:{self._type} = {self._value}"
-
-    def validate(self,value:any) -> any:
+ 
+    def __str__(self) -> str:
+        return self.__repr__()
+ 
+    def _validate_value(self,new_value:any) -> any:
         """
         Validates and converts the value using the variable's type.
-
+ 
         Parameters
         ----------
         :param value any:
             The new value to validate
-
+ 
         Return
         ------
         :return any:
             The converted value if it's valid.
-
+ 
         Raises
         ------
             TypeError: If the value cannot be converted to the target type.
         """
         try:
-            new_value = self._type(value)
+            correct_value = self._type(new_value)
         except Exception as e:
-            err_msg = f"The value {value} for variable {self._name} isn't converting to the type {self._type}!"
+            err_msg = f"The value {new_value} for variable '{self._name}' isn't converting to the type {self._type}!"
             raise TypeError(err_msg)
-        
+         
         # Ajouter logique pour bounds/appartenance
-        return new_value
+        return correct_value
+    
+    def _validate_type(self,new_type:any) -> callable:
+        """
+        Validate the given type, and if it's a string return the corresponding type.
 
+        Parameters
+        ----------
+        :param new_type any:
+            The new type to validate.
+        
+        Return
+        ------
+        :return callable:
+            The corresponding type if it's valid.
+
+        Raises
+        ------
+            ValueError: If the type is not supported.
+        """
+
+        if isinstance(new_type,str):
+            if not new_type in _SUPPORTED_TYPE.keys():
+                raise ValueError(f"The type '{new_type}' isn't supported.")
+            return _SUPPORTED_TYPE[new_type]
+        
+        if not new_type in _SUPPORTED_TYPE.values():
+            raise ValueError(f"The type '{type(new_type)}' isn't supported.")
+        return new_type
+ 
     @staticmethod
     def constructFromString(line:str) -> 'ConfigVariable':
         """
         Parses a configuration line and constructs a ConfigVariable object.
-
+ 
         Parameters
         ----------
         :param line str: 
             The configuration string to parse (e.g., 'port:int=8080').
-
+ 
         Return
         ------
         :return ConfigVariable: 
             An instance representing the parsed configuration.
-
+ 
         Raises
         ------
             ValueError: If parsing fails due to incorrect syntax or unsupported type.
         """
-
+ 
         # Extract components
         components, err_code, err_msg = _extractFromString(line)
-
+ 
         # Check for errors:
         if err_code != "OK":
             raise ValueError(f"({err_code}) {err_msg}")
-        
+         
         # Construct variable
         return ConfigVariable(
             VariableName = components["name"],
             VariableType = components["type"],
             value = components["value"]
             )
-    
+
+
+
+
 
 def _extractFromString(line:str) -> tuple[dict[str:any],str]:
     """
@@ -227,3 +246,138 @@ def _extractFromString(line:str) -> tuple[dict[str:any],str]:
         return (components,"NO_VALUE_FOUND",err_msg["NO_VALUE_FOUND"].format(line=line))
     
     return (components,"OK","")
+
+
+
+
+
+
+
+# Old implemntation as desciptors:
+# ================================
+#### class ConfigVariableValidator(ABC):
+####     """
+####     Abstract base class for configuration variable descriptors.
+#### 
+####     Subclasses should implement the `validate()` method to ensure the correctness
+####     of any value assigned to the variable.
+#### 
+####     Implements descriptor protocol to enable per-instance variable validation and access.
+####     The variable info (including value) is stored in the instance, not in the owner of the
+####     instance.
+####     """
+#### 
+####     def __init__(self):
+####         super().__init__()
+####         self._value = None
+#### 
+####     #def __set_name__(self,owner,name):
+####         # self  -> l'instance de ConfigVariableValidators ou hérité
+####         # owner -> La classe (et non pas l'instance) possédant l'attribut
+####         # name  -> Le nom de l'attribut dans la classe owner
+#### 
+####     def __get__(self, obj, objType=None):
+####         return self._value
+####     
+####     def __set__(self,obj,value):
+####         self._value = self.validate(value)
+#### 
+####     @abstractmethod
+####     def validate(self, value):
+####         """
+####             Should implement the validation logic
+####         """
+####         pass
+#### 
+#### 
+#### class ConfigVariable(ConfigVariableValidator):
+####     """
+####     Implementation of a configuration variable.
+#### 
+####     This class is a descriptor class, and supports type validation and automatic value conversion 
+####     on assignment.
+####     """
+#### 
+####     def __init__(self, VariableName:str, VariableType:callable, value:any):
+####         """
+####         Concrete implementation of a configuration variable descriptor.
+#### 
+####         Parameters
+####         ----------
+####         :param VariableName str: 
+####             Name of the configuration variable.
+####         :param VariableType callable: 
+####             A Python type (e.g. int, float, str) used for validation.
+####         :param value any: 
+####             The initial value to assign, which will be validated and converted.
+####         """
+#### 
+####         self._name = VariableName
+####         self._type = VariableType
+####         self._value = self.validate(value)
+#### 
+####     def __str__(self) -> str:
+####         return f"{self._name}:{self._type} = {self._value}"
+#### 
+####     def validate(self,value:any) -> any:
+####         """
+####         Validates and converts the value using the variable's type.
+#### 
+####         Parameters
+####         ----------
+####         :param value any:
+####             The new value to validate
+#### 
+####         Return
+####         ------
+####         :return any:
+####             The converted value if it's valid.
+#### 
+####         Raises
+####         ------
+####             TypeError: If the value cannot be converted to the target type.
+####         """
+####         try:
+####             new_value = self._type(value)
+####         except Exception as e:
+####             err_msg = f"The value {value} for variable {self._name} isn't converting to the type {self._type}!"
+####             raise TypeError(err_msg)
+####         
+####         # Ajouter logique pour bounds/appartenance
+####         return new_value
+#### 
+####     @staticmethod
+####     def constructFromString(line:str) -> 'ConfigVariable':
+####         """
+####         Parses a configuration line and constructs a ConfigVariable object.
+#### 
+####         Parameters
+####         ----------
+####         :param line str: 
+####             The configuration string to parse (e.g., 'port:int=8080').
+#### 
+####         Return
+####         ------
+####         :return ConfigVariable: 
+####             An instance representing the parsed configuration.
+#### 
+####         Raises
+####         ------
+####             ValueError: If parsing fails due to incorrect syntax or unsupported type.
+####         """
+#### 
+####         # Extract components
+####         components, err_code, err_msg = _extractFromString(line)
+#### 
+####         # Check for errors:
+####         if err_code != "OK":
+####             raise ValueError(f"({err_code}) {err_msg}")
+####         
+####         # Construct variable
+####         return ConfigVariable(
+####             VariableName = components["name"],
+####             VariableType = components["type"],
+####             value = components["value"]
+####             )
+    
+
