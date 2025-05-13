@@ -4,16 +4,33 @@
 # ---------------------------------------------------------
 # ./ConfigHelper/config_section.py
 
+import re
+
 from .config_variable import ConfigVariable
+
+
+_NEW_SECTION_RE = re.compile(r"[[](?P<name>.+)[]]")
+_NO_FALLBACK = object()
+
 
 class ConfigSection(object):
 
-    _vars: dict[str:ConfigVariable] = dict()
+    # Definition as class attributs for intellisens
+    _vars: dict[str:ConfigVariable]
+
+
+    # Constructor
+    # -----------
+
+    def __new__(cls, *args, **kwargs):
+        # Write _vars as a instance attribute whitout using instance.__setattr__
+        # as it needs the _vars variable.
+        instance = super().__new__(cls)
+        object.__setattr__(instance,"_vars",dict())
+        return instance
 
     def __init__(self, name:str):
         self._name = name
-        self._vars: dict[str:ConfigVariable] = dict()
-        #self._parentConfig for accessing default value ?
 
 
     # Dunder methods:
@@ -87,7 +104,6 @@ class ConfigSection(object):
         return key in self._vars.keys()
 
 
-
     # Methods to add/remove/change a variable:
     # ----------------------------------------
 
@@ -122,3 +138,82 @@ class ConfigSection(object):
         del self._vars[var_name]
         return
     
+    def update_variable(self,new_var:ConfigVariable):
+        """ Set a new variable only if it exist """
+
+        # Check type:
+        if not isinstance(new_var,ConfigVariable):
+            raise TypeError(f"Cannot update variable of type {type(new_var)} in section {self._name}: {new_var} !!")
+        
+        if new_var in self:
+            self._vars[new_var._name] = new_var
+
+    def with_defaults(self,default_section:'ConfigSection') -> 'ConfigSection':
+        """ 
+        Method to add some default variables to a new instance of ConfigSection. 
+        
+        This method is intended to be used by a ConfigHelper instance, when
+        accessing a section. The new ConfigSection has the same name as this instance,
+        but some default variable are added (only) if they didn't exist in this instance.
+        """
+
+        # Check type:
+        if not isinstance(default_section,ConfigSection):
+            raise TypeError(f"Cannot set default in section {self._name} without an other ConfigSection!! I've received a {type(default_section)} !!")
+
+        # Create and populate new section with default variables
+        new_section = ConfigSection(self._name)
+        for var in default_section.values():
+            new_section.set_variable(var)
+
+        # Overwrite with this instance variables
+        for var in self.values():
+            new_section.set_variable(var)
+                
+        
+        return new_section
+
+
+    # Methods to access variables:
+    # ----------------------------
+
+    def items(self):
+        return self._vars.items()
+    
+    def keys(self):
+        return self._vars.keys()
+    
+    def values(self):
+        return self._vars.values()
+    
+    def get(self, key:str, fallback:any=_NO_FALLBACK):
+
+        # Check key is a string:
+        if not isinstance(key,str):
+            raise TypeError(f"Impossible to index section {self._name} by {key} (as type {type(key)})")
+        
+        if not key in self._vars.keys():
+
+            if fallback is _NO_FALLBACK:
+                raise KeyError(f"Variable {key} isn't in section {self._name}")
+                            
+            else:
+                return fallback                
+        
+        return self._vars[key]
+
+
+def _checkNewSection(line:str) -> str|None:
+    """
+    Return the name of the section if the line correpsond to a section definition
+    in ini format, else None.
+    """
+
+    # Type check:
+    if not isinstance(line,str):
+        raise TypeError(f"Can't check if new section with line as {type(line)}")
+
+    if section_name := _NEW_SECTION_RE.fullmatch( line.strip() ):
+        return section_name.group('name')
+    return None
+
