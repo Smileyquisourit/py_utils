@@ -4,8 +4,12 @@
 # ---------------------------------------------------------
 # ./ConfigHelper/confighelper.py
 
+import os
+
 from .config_variable import ConfigVariable
 from .config_section import ConfigSection, _checkNewSection, _NO_FALLBACK
+
+_DEFAULT_MAX_LINE = 100
 
 class ConfigHelper():
 
@@ -42,8 +46,10 @@ class ConfigHelper():
         object.__setattr__(instance,"_SECTIONS",dict())
         return instance
 
-    def __init__(self):
-        pass
+    def __init__(self, comments_indicators : None|str|list[str] = None):
+        
+        if comments_indicators:
+            self._comments_indicators = comments_indicators
 
 
     # Dunder methods:
@@ -101,7 +107,9 @@ class ConfigHelper():
             raise TypeError(f"Impossible to index config by {key} (as type {type(key)})")
 
         if key not in self._SECTIONS.keys():
-            raise KeyError(f"Section {key} isn't in config")
+            if key in self._DEFAULTS.keys():
+                return self._DEFAULTS[key]
+            raise KeyError(f"Section or param {key} isn't in config")
         
         return self._SECTIONS[key].with_defaults(self._DEFAULTS)
     
@@ -136,39 +144,32 @@ class ConfigHelper():
         
         current_section = None
         for line in conf_str.splitlines():
-            print(f"[DEBUG] Starting to parse line '{line}'")
+            current_section = self._parse_line(line,current_section,safe)
 
-            # Strip line and ignore comments or empty line
-            line = line.lstrip()
-            if not line or line[0] in self._comments_indicators:
-                print(f"\t empty line or comment line detected, passing")
-                continue
+    def read_ini(self, conf_file:str, safe:bool=False, max_lines:int=_DEFAULT_MAX_LINE):
+        """ Check that the file exist, read all lines and pass it to read_str """
+        
+        # Check file:
+        if not os.path.isfile(conf_file):
+            raise FileNotFoundError(f"The config file '{conf_file}' wasn't found!")
+        if not os.access(conf_file, os.R_OK):
+            raise PermissionError(f"The config file '{conf_file}' was found, but can't be open in read mode!")
+        
+        # Read file:
+        nLigne = 0
+        with open(conf_file,'r') as f:
+            current_section = None
+            for line in f:
 
-            # Check start of a new section
-            if new_section := _checkNewSection(line):
-                if safe and not new_section in self.sections :
-                    raise Exception(f"New section {new_section} while reading config but mode safe is active")
-                current_section = new_section
-                #self.set_section( ConfigSection(current_section) )
-                continue
-            
-            # Create new var:
-            print(f"\t creating conf var from line '{line}'")
-            new_var = ConfigVariable.constructFromString(line)
+                # Check number of line
+                if nLigne > max_lines:
+                    raise Exception(f"Max number of ligne ({max_lines}) was read in file {conf_file}")
 
-            if not current_section:
-                # We are still reading defaults from the config
-                if safe and not new_var in self._DEFAULTS:
-                    raise Exception(f"New default variable '{new_var._name}' while reading config but mode safe is active")
-            
-            if safe and not new_var in self[current_section]:
-                raise Exception(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
-            print(f"\t adding {new_var} in {current_section if current_section else '_DEFAULTS'}")
-            self.update_section(current_section, new_var)
+                # Parse line
+                current_section = self._parse_line(line,current_section,safe)
+                nLigne += 1
 
-    def read_ini(self, conf_file:str, safe:bool=False):
-        pass
-
+                
     def read_dict(self, conf_dict:dict, safe:bool=False):
         raise NotImplementedError(f"Reading config from dict isn't implemented yet")
     
@@ -254,24 +255,22 @@ class ConfigHelper():
     def defaults_items(self):
         return self._DEFAULTS.items()
     
-    def get(self, section, variable, fallback=_NO_FALLBACK):
-        # Attention avec les fallbacks, est ce que les varibales de la section
-        # default doivent en avoir un ?
+    def get(self, section:str|None, variable:str, fallback=_NO_FALLBACK):
 
         # Type conversion
-        if isinstance(section,ConfigSection):
+        if section and isinstance(section,ConfigSection):
             section = section._name
         if isinstance(variable,ConfigVariable):
             variable = variable._name
         
         # Type check
-        if not isinstance(section,str):
+        if section and not isinstance(section,str):
             raise TypeError(f"Impossible to index section of conf by key of type {type(section)}")
         if not isinstance(variable,str):
             raise TypeError(f"Impossible to index variable of conf by key of type {type(section)}")
 
         # Get variable if no section:
-        if not section in self.sections_names:
+        if not section or not section in self.sections_names:
             return self._DEFAULTS.get(variable,fallback)
         if value := self[section].get(variable,None):
             return value
@@ -287,5 +286,31 @@ class ConfigHelper():
                 return True
         return False         
 
+    def _parse_line(self, line:str, current_section:None|str, safe:bool):
+        """ Read one line and return the current section """
+
+        # Strip line and ignore comments or empty line
+        line = line.lstrip()
+        if not line or line[0] in self._comments_indicators:
+            return current_section
+        
+        # Check start of a new section
+        if new_section := _checkNewSection(line):
+            if safe and not (new_section in self.sections_names) :
+                raise Exception(f"New section {new_section} while reading config but mode safe is active (known section: {self.sections_names})")
+            return new_section
+        
+        # Create new var:
+        new_var = ConfigVariable.constructFromString(line)
+
+        if not current_section:
+            # We are still reading defaults from the config
+            if safe and not new_var in self._DEFAULTS:
+                raise Exception(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
+            
+        if safe and not new_var in self[current_section]:
+            raise Exception(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
+        self.update_section(current_section, new_var)
+        return current_section
 
 

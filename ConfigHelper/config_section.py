@@ -200,7 +200,7 @@ class ConfigSection(object):
             else:
                 return fallback                
         
-        return self._vars[key]
+        return self._vars[key].value
 
 
 def _checkNewSection(line:str) -> str|None:

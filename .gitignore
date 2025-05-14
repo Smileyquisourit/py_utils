@@ -7,3 +7,5 @@ __pycache__/
 
 # Sand box for dev:
 sandBox*.py
+sandBox*.cfg
+sandBox*.json
