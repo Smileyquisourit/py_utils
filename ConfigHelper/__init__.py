@@ -8,6 +8,7 @@
 # - Add _doc or doc in ConfigVariable to explain a variable in the config (will be print as comment when
 #       writting a config file) 
 # - Change _NO_FALLBACK to a more elegant solution if possible, else see where to define it
+# - Implement read and read_safe
 #
 # - Add supported type: bool (with 'on'/'off', 'True'/'False', 'true'/'false', 'yes'/'no')
 # - Add interpolation for INI format configuration, with %{SECTION:NAME}s or %{NAME}s

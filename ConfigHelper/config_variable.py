@@ -170,19 +170,38 @@ class ConfigVariable(object):
             ValueError: If parsing fails due to incorrect syntax or unsupported type.
         """
  
-        # Extract components
+        # Extract components:
         components, err_code, err_msg = _extractFromString(line)
  
         # Check for errors:
         if err_code != "OK":
             raise ValueError(f"({err_code}) {err_msg}")
          
-        # Construct variable
+        # Construct variable:
         return ConfigVariable(
             VariableName = components["name"],
             VariableType = components["type"],
             value = components["value"]
             )
+    
+    @staticmethod
+    def constructFromDict(var_dict:dict) -> 'ConfigVariable':
+        """ Create a VonfigVariable from a dictionary """
+
+        # Extract components:
+        components, err_code, err_msg = _extractFromDict(var_dict)
+
+        # Check for errors:
+        if err_code != "OK":
+            raise ValueError(f"({err_code}) {err_msg}")
+        
+        # Construct variable:
+        return ConfigVariable(
+            VariableName = components["name"],
+            VariableType = components["type"],
+            value = components["value"]
+        )
+
 
 
 
@@ -217,7 +236,7 @@ def _extractFromString(line:str) -> tuple[dict[str:any],str]:
         "OK": "",
         "NO_NAME_FOUND": "No name found in line '{line}'",
         'UNSUPORTED_TYPE': f"Unsuported type {{type}} in line '{{line}}', supported types are {list(_SUPPORTED_TYPE.keys())}",
-        "NO_VALUE_FOUND": "No value found in line '{line}"
+        "NO_VALUE_FOUND": "No value found in line '{line}'"
     }
 
     # Strip line:
@@ -245,6 +264,44 @@ def _extractFromString(line:str) -> tuple[dict[str:any],str]:
     else:
         return (components,"NO_VALUE_FOUND",err_msg["NO_VALUE_FOUND"].format(line=line))
     
+    return (components,"OK","")
+
+def _extractFromDict(_dict:dict) -> tuple[dict[str:any],str]:
+
+    # Initialisation
+    components = {
+        "name": None,
+        "type": None,
+        "value": None
+    }
+    err_msg = {
+        "OK": "",
+        "NO_NAME_FOUND": "No name found in dict!",
+        'UNSUPORTED_TYPE': f"Unsuported type {{type}} in line dict, supported types are {list(_SUPPORTED_TYPE.keys())}",
+        "NO_VALUE_FOUND": "No value found in dict!"
+    }
+
+    # Check name
+    if not (name := _dict.get("name",None)):
+        return (components,"NO_NAME_FOUND",err_msg["NO_NAME_FOUND"])
+    components["name"] = name
+
+    # Check type
+    _type = _dict.get("type","str")
+    if not isinstance(_type,str):
+        try:
+            _type = _type.__name__
+        except:
+            return (components,"UNSUPORTED_TYPE",err_msg["UNSUPORTED_TYPE"].format(type=_type))
+    if not _type in _SUPPORTED_TYPE.keys():
+        return (components,"UNSUPORTED_TYPE",err_msg["UNSUPORTED_TYPE"].format(type=_type))
+    components["type"] = _SUPPORTED_TYPE[_type]
+
+    # Check value
+    if not (value := _dict.get("value",None)):
+        return (components,"NO_VALUE_FOUND",err_msg["NO_VALUE_FOUND"])
+    components["value"] = value
+
     return (components,"OK","")
 
 

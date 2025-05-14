@@ -5,6 +5,7 @@
 # ./ConfigHelper/confighelper.py
 
 import os
+import json
 
 from .config_variable import ConfigVariable
 from .config_section import ConfigSection, _checkNewSection, _NO_FALLBACK
@@ -147,9 +148,11 @@ class ConfigHelper():
             current_section = self._parse_line(line,current_section,safe)
 
     def read_ini(self, conf_file:str, safe:bool=False, max_lines:int=_DEFAULT_MAX_LINE):
-        """ Check that the file exist, read all lines and pass it to read_str """
+        """ Check that the file exist first """
         
         # Check file:
+        if not isinstance(conf_file,(str,bytes,os.PathLike,int)):
+            raise TypeError(f"The configuration file should be string, bytes, os.PathLike or integer, not {type(conf_file)}")
         if not os.path.isfile(conf_file):
             raise FileNotFoundError(f"The config file '{conf_file}' wasn't found!")
         if not os.access(conf_file, os.R_OK):
@@ -171,10 +174,49 @@ class ConfigHelper():
 
                 
     def read_dict(self, conf_dict:dict, safe:bool=False):
-        raise NotImplementedError(f"Reading config from dict isn't implemented yet")
+        
+        # Type check
+        if not isinstance(conf_dict,dict):
+            raise TypeError(f"Cannot read {conf_dict} as a dict, as it is a {type(conf_dict)}")
+        
+        # Read defaults if their is any
+        if default_section := conf_dict.get("DEFAULTS",None):
+            self._parse_dict(None,default_section,safe)
+
+        # Read list of sections_dict
+        if not (sections_list := conf_dict.get("SECTIONS",None)):
+            raise ValueError("No SECTIONS found conf_dict")
+        if not isinstance(sections_list,list):
+            raise TypeError(f"SECTIONS uncorrectly defined! It should be a list, instead I've received a {type(sections_list)}.")
+        
+        # Parse each section_dict
+        for section_dict in sections_list:
+            # A section should be in the form {'section_name':[{var1},{var2},...]}
+
+            # Type check
+            if not isinstance(section_dict,dict):
+                raise TypeError(f"A section was uncorrectly defined, it should be a dict but I've received a {type(section_dict)}")
+            if len(section_dict) != 1:
+                raise ValueError(f"A section should be defined as a dict with only one key/value pair, instead I've received {section_dict}")
+            
+            # Construct section
+            for section_name, section_vars in section_dict.items():
+                self._parse_dict(section_name, section_vars, safe)
     
     def read_json(self, conf_file:str, safe:bool=False):
-        raise NotImplementedError(f"Reading config from json file isn't implemented yet")
+
+        # Check file:
+        if not isinstance(conf_file,(str,bytes,os.PathLike,int)):
+            raise TypeError(f"The configuration file should be string, bytes, os.PathLike or integer, not {type(conf_file)}")
+        if not os.path.isfile(conf_file):
+            raise FileNotFoundError(f"The config file '{conf_file}' wasn't found!")
+        if not os.access(conf_file, os.R_OK):
+            raise PermissionError(f"The config file '{conf_file}' was found, but can't be open in read mode!")
+        
+        # Read file:
+        with open(conf_file,'r') as f:
+            conf_dict = json.load(f)
+        self.read_dict(conf_dict,safe)
 
 
     # Methods to add/remove/change a section:
@@ -308,9 +350,36 @@ class ConfigHelper():
             if safe and not new_var in self._DEFAULTS:
                 raise Exception(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
             
-        if safe and not new_var in self[current_section]:
+        elif safe and not new_var in self[current_section]:
             raise Exception(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
+        
         self.update_section(current_section, new_var)
         return current_section
+
+    def _parse_dict(self,key:str|None,value:list[dict],safe:bool):
+        """
+        key: nom de la section, None si c'est pour _DEFAULTS
+        value: une liste de dict qui contiennent la définition d'une variable
+        """
+        
+        # Check section name:
+        # TODO
+        section = key
+
+        # Update section
+        for var_dict in value:
+
+            new_var = ConfigVariable.constructFromDict(var_dict)
+
+            if not section:
+                # We are still reading defaults from the config
+                if safe and not new_var in self._DEFAULTS:
+                    raise Exception(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
+            
+            elif safe and not new_var in self[section]:
+                raise Exception(f"New variable '{new_var._name}' in section '{section}' while reading config but mode safe is active")
+            
+            self.update_section(section,new_var)
+
 
 
