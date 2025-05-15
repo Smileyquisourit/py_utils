@@ -13,12 +13,24 @@ Implement the Logueur class, used for logging messages
 to various output, and factury function for this class.
 """
 
+# A way of implementing a singleton, not used
+# See https://stackoverflow.com/questions/6760685/what-is-the-best-way-of-implementing-a-singleton-in-python
+# class Singleton(type):
+#     _instances = {}
+#     def __call__(cls, *args, **kwargs):
+#         if cls not in cls._instances:
+#             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+#         return cls._instances[cls]
+
 from typing import Union, Optional
 
 from .log_level import LogLevel
 from .log_message import LogMessage
 from .log_topic import LogTopic, LogTopicFilter
 from .log_out import BaseLogHandler, ConsoleLogHandler, FileLogHandler
+
+_default_level = LogLevel.factory("warning")
+_default_filter = LogTopicFilter('#')
 
 class Logueur():
     """ 
@@ -34,6 +46,17 @@ class Logueur():
     simplifies the sending of messages by handling the creation of the 
     messages.    
     """
+
+    _default = ConsoleLogHandler(_default_level,_default_filter,supportColor=False,useStderr=True)
+    _instance = None
+
+    def __new__(cls,*args,**kwargs):
+
+        if not cls._instance:
+            cls._instance = object.__new__(cls)
+            cls._instance.__init__(*args,*kwargs)
+        return cls._instance
+        
 
     def __init__(self, output:Union[BaseLogHandler,list[BaseLogHandler]],
                  topicGenerationMethode:Optional[str]=None,
@@ -88,11 +111,15 @@ class Logueur():
 
         # Initialization:
         # ---------------
-        self._out = output
+        self._out = list()
         self._topicGenerationMethode = topicGenerationMethode
         self._messageFormat = messageFormat
 
-    def add_out(self, output:Union[BaseLogHandler,list[BaseLogHandler]]) -> None:
+        # Register Output:
+        # ----------------
+        self.register_output(output)
+
+    def register_output(self, output:Union[BaseLogHandler,list[BaseLogHandler]]) -> None:
         """ 
         =======
         add_out
@@ -115,19 +142,22 @@ class Logueur():
             output = [output]
         for i,out in enumerate(output,start=1):
             if not isinstance(out,BaseLogHandler):
-                raise ValueError(f"Output {i} of the differents outputs must be a BaseLogHandler or a subclass of BaseLogHandler, intead I've received a '{type(out)}'")
+                raise ValueError(f"Output {i} of the differents outputs must be a subclass of BaseLogHandler, intead I've received a '{type(out)}'")
 
         # Add output:
         # -----------
-        self._out.append(output)
+        for out in output:
+            self._out.append(out)
 
-    def log(self,msg:LogMessage) -> None:
+    @classmethod
+    def log(cls,msg:LogMessage) -> None:
         """ 
         ===
         Log
         ===
         
-        Log a specific message.
+        Log a specific message. If a instance of Logueur is defined, use its output, else
+        use the default one.
         
         Parameters
         ----------
@@ -142,8 +172,11 @@ class Logueur():
         
         # Logging:
         # --------
-        for out in self._out:
-            out.emit(msg)
+        if cls._instance:
+            for out in cls._instance._out:
+                out.emit(msg)
+        else:
+            cls._default.emit(msg)
     
     def debug(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
@@ -351,6 +384,22 @@ class Logueur():
         msg = LogMessage(body,LogLevel.FATAL,topic,fmt=format)
         self.log(msg)
 
+    @classmethod
+    def get_defaultFunc(cls,topic:str,fmt:Optional[str]=None):
+        
+        def log(level:str,body):
+
+            msg = LogMessage(
+                body=body,
+                level=LogLevel.factory(level),
+                topic=LogTopic(topic),
+                fmt=fmt
+            )
+
+            cls.log(msg)
+
+        return log
+
 
 def ConsoleLogueurFactory(level:Union[str,LogLevel],filter:Union[str,LogTopicFilter]="#",
                           supportColor:bool=True, useStderr:bool=True) -> Logueur:
@@ -382,8 +431,8 @@ def ConsoleLogueurFactory(level:Union[str,LogLevel],filter:Union[str,LogTopicFil
 
     # Type Check:
     # -----------
-    if not isinstance(level,(str,LogLevel)):
-        raise ValueError(f"The level must be a str or a LogLevel, instead I've received a '{type(level)}'")
+    if not isinstance(level,(int,str,LogLevel)):
+        raise ValueError(f"The level must be a int, a str or a LogLevel, instead I've received a '{type(level)}'")
     if not isinstance(filter,(str,LogTopicFilter)):
         raise ValueError(f"The filter msut be a str or a LogLevel, instead I've received a '{type(filter)}'")
     if not isinstance(supportColor,bool):
@@ -393,8 +442,8 @@ def ConsoleLogueurFactory(level:Union[str,LogLevel],filter:Union[str,LogTopicFil
     
     # Type conversion:
     # ----------------
-    if isinstance(level,str):
-        level = LogLevel[level]
+    if isinstance(level,(str,int)):
+        level = LogLevel.factory(level)
     if isinstance(filter,str):
         filter = LogTopicFilter(filter)
 
