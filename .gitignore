@@ -9,3 +9,4 @@ __pycache__/
 sandBox*.py
 sandBox*.cfg
 sandBox*.json
+sandBoxLog/
