@@ -12,6 +12,7 @@ Module log_topic
 Implement the LogMessage class, encapsulating all of the relevant informations of a log message.
 """
 
+import datetime
 from typing import Optional
 
 from .log_level import LogLevel
@@ -61,11 +62,17 @@ class LogMessage():
             raise ValueError("The msg_fmt must at least contains {body} !")
         self._msg_fmt = msg_fmt
 
-    def __init__(self, body:str, level:LogLevel, topic:LogTopic, fmt:Optional[str]=None) -> None:
+    def __init__(self, body:str, level:LogLevel, topic:LogTopic, fmt:Optional[str]=None, 
+                 tz:Optional[datetime.timezone]=None) -> None:
         """ Constructor of LogMessage
 
         Construct a log message. If no format (`fmt`) is specified, the default one is used\n
         `[{level}] {topic}\\n{body}\\n\\n`
+
+        When creating a log message, the time is computed (using datetime.datetime.now()) and is passed when
+        formating the message. 2 options are passed:
+        - 'date' = datetime.datetime.now().date().isoformat()
+        - 'time' = datetime.datetime.now().timetz().isoformat()
 
         parameters
         ----------
@@ -82,13 +89,15 @@ class LogMessage():
         # Type Check:
         # -----------
         if not isinstance(body,str):
-            raise ValueError(f"The body of the log message must be a str, instead I've received '{type(body)}'")
+            raise TypeError(f"The body of the log message must be a str, instead I've received '{type(body)}'")
         if not isinstance(level,LogLevel):
-            raise ValueError(f"The level of the log message must be a LogLevel, instead I've received '{type(level)}'")
+            raise TypeError(f"The level of the log message must be a LogLevel, instead I've received '{type(level)}'")
         if not isinstance(topic,LogTopic):
-            raise ValueError(f"The topic of the log message must be a LogTopic, instead I've received '{type(topic)}'")
+            raise TypeError(f"The topic of the log message must be a LogTopic, instead I've received '{type(topic)}'")
         if fmt and not isinstance(fmt,str):
-            raise ValueError(f"The format of the log message must be a str, instead I've received '{type(fmt)}'")
+            raise TypeError(f"The format of the log message must be a str, instead I've received '{type(fmt)}'")
+        if tz and not isinstance(tz,datetime.timezone):
+            raise TypeError(f"The timezone used in the log message must be a datetime.timezone, instead I've received '{type(tz)}'")
         
         # Save arguments:
         # ---------------
@@ -99,6 +108,17 @@ class LogMessage():
         if fmt:
             self.msg_fmt = fmt
 
+        # Compute other arguments:
+        # ------------------------
+        self.datetime = datetime.datetime.now(tz)
+
     def __str__(self) -> str:
         """ Format the message with the formating string """
-        return self.msg_fmt.format(body=self.body,level=self.level.name,topic=self.topic.topic)
+        args = {
+            'body' : self.body,
+            'level': self.level.name,
+            'topic': self.topic.topic,
+            'date' : self.datetime.date(),
+            'time' : self.datetime.timetz()
+        }
+        return self.msg_fmt.format(**args)

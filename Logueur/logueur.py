@@ -22,6 +22,7 @@ to various output, and factury function for this class.
 #             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
 #         return cls._instances[cls]
 
+import datetime
 from typing import Union, Optional
 
 from .log_level import LogLevel
@@ -54,13 +55,14 @@ class Logueur():
 
         if not cls._instance:
             cls._instance = object.__new__(cls)
-            cls._instance.__init__(*args,*kwargs)
+            cls._instance.__init__(*args,**kwargs)
         return cls._instance
         
 
     def __init__(self, output:Union[BaseLogHandler,list[BaseLogHandler]],
                  topicGenerationMethode:Optional[str]=None,
-                 messageFormat:Optional[str]=None) -> None:
+                 messageFormat:Optional[str]=None,
+                 tz:Optional[datetime.timezone]=None) -> None:
         """ 
         ======================
         Constructor of Logueur
@@ -108,12 +110,15 @@ class Logueur():
             raise ValueError(f"The message format must be a str, instead I've received a '{type(messageFormat)}'")
         if messageFormat and not r'{body}' in messageFormat:
             raise ValueError("The msg_fmt must at least contains {body} !")
+        if tz and not isinstance(tz,datetime.timezone):
+            raise TypeError(f"The timezone info (tz) must be a datetime.timezone, instead I've received a '{type(tz)}'")
 
         # Initialization:
         # ---------------
         self._out = list()
         self._topicGenerationMethode = topicGenerationMethode
         self._messageFormat = messageFormat
+        self._timezone = tz
 
         # Register Output:
         # ----------------
@@ -214,10 +219,12 @@ class Logueur():
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
+        else:
+            format = self._messageFormat
         
         # Create and log message:
         # -----------------------
-        msg = LogMessage(body,LogLevel.DEBUG,topic,fmt=format)
+        msg = LogMessage(body,LogLevel.DEBUG,topic,fmt=format,tz=self._timezone)
         self.log(msg)
     def info(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
@@ -255,10 +262,12 @@ class Logueur():
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
+        else:
+            format = self._messageFormat
         
         # Create and log message:
         # -----------------------
-        msg = LogMessage(body,LogLevel.INFO,topic,fmt=format)
+        msg = LogMessage(body,LogLevel.INFO,topic,fmt=format,tz=self._timezone)
         self.log(msg)
     def warning(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
@@ -296,10 +305,12 @@ class Logueur():
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
+        else:
+            format = self._messageFormat
         
         # Create and log message:
         # -----------------------
-        msg = LogMessage(body,LogLevel.WARNING,topic,fmt=format)
+        msg = LogMessage(body,LogLevel.WARNING,topic,fmt=format,tz=self._timezone)
         self.log(msg)
     def error(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
@@ -337,10 +348,12 @@ class Logueur():
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
+        else:
+            format = self._messageFormat
         
         # Create and log message:
         # -----------------------
-        msg = LogMessage(body,LogLevel.ERROR,topic,fmt=format)
+        msg = LogMessage(body,LogLevel.ERROR,topic,fmt=format,tz=self._timezone)
         self.log(msg)
     def fatal(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
@@ -378,22 +391,29 @@ class Logueur():
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
+        else:
+            format = self._messageFormat
         
         # Create and log message:
         # -----------------------
-        msg = LogMessage(body,LogLevel.FATAL,topic,fmt=format)
+        msg = LogMessage(body,LogLevel.FATAL,topic,fmt=format,tz=self._timezone)
         self.log(msg)
 
     @classmethod
-    def get_defaultFunc(cls,topic:str,fmt:Optional[str]=None):
+    def get_defaultFunc(cls,topic:str,fmt:Optional[str]=None,tz:Optional[datetime.timezone]=None):
+
+        # Type check:
+        # -----------
+        #TODO
         
-        def log(level:str,body):
+        def log(level:Union[str,int],body:str):
 
             msg = LogMessage(
                 body=body,
                 level=LogLevel.factory(level),
                 topic=LogTopic(topic),
-                fmt=fmt
+                fmt=fmt,
+                tz=tz
             )
 
             cls.log(msg)
