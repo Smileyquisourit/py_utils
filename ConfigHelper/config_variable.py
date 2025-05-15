@@ -5,9 +5,7 @@
 # ./ConfigHelper/config_param.py
 
 import re
-#from warnings import warn
-#from typing import Optional
-#from abc import ABC, abstractmethod
+import functools
 
 """
 ======================
@@ -32,10 +30,56 @@ The following type are currently supported:
 - float
 """
 
+# Conversion functionality:
+# -------------------------
+
+class ConfigConversionError(Exception):
+    pass
+
+def _convert_str(value:any,cVarName,cVarType) -> str:
+    try:
+        new_value = str(value)
+    except Exception as e:
+        raise ConfigConversionError(f"[ConfigVariable '{cVarName}'] Error while trying to convert '{value}' to {cVarType}:\n{e}")
+    return new_value
+def _convert_int(value:any,cVarName,cVarType) -> int:
+    try:
+        new_value = int(value)
+    except Exception as e:
+        raise ConfigConversionError(f"[ConfigVariable '{cVarName}'] Error while trying to convert '{value}' to {cVarType}:\n{e}")
+    return new_value
+def _convert_float(value:any,cVarName,cVarType) -> float:
+    try:
+        new_value = float(value)
+    except Exception as e:
+        raise ConfigConversionError(f"[ConfigVariable '{cVarName}'] Error while trying to convert '{value}' to {cVarType}:\n{e}")
+    return new_value
+def _convert_bool(value:any,cVarName,cVarType) -> bool:
+
+    # Try to convert first to str:
+    try:
+        value = str(value)
+    except Exception as e:
+        raise ConfigConversionError(f"[ConfigVariable '{cVarName}'] Error while trying to convert '{value}' to {cVarType}:\n{e}")
+    
+    # From string deduct boolean value:
+    if value in ("true","True","1","on","yes"):
+        return True
+    if value in ("false","False","0","off","no"):
+        return False
+    raise ConfigConversionError(f"Impossible to deduct a boolean value from '{value}'")
+
 _SUPPORTED_TYPE = {
-    "str":str,
-    "int":int,
-    "float":float
+    "str"  : str,
+    "int"  : int,
+    "float": float,
+    "bool" : bool
+}
+_CONVERSION_FUNC = {
+    str  : _convert_str,
+    int  : _convert_int,
+    float: _convert_float,
+    bool : _convert_bool
 }
 
 _VARIABLE_NAME_RE = re.compile(r"(?P<name>[^:=\s]+)")
@@ -114,12 +158,13 @@ class ConfigVariable(object):
             TypeError: If the value cannot be converted to the target type.
         """
         try:
-            correct_value = self._type(new_value)
-        except Exception as e:
-            err_msg = f"The value {new_value} for variable '{self._name}' isn't converting to the type {self._type}!"
-            raise TypeError(err_msg)
+            correct_value = _CONVERSION_FUNC[self._type](new_value,self._name,self._type)
+        except KeyError as e:
+            err_msg = f"No conversion function found for type {self._type}, supported type are {_SUPPORTED_TYPE}.\n"
+            err_msg += "Maybe your conversion function wasn't registered before the config was read ?\n"
+            err_msg += str(e)
+            raise KeyError(err_msg)
          
-        # Ajouter logique pour bounds/appartenance
         return correct_value
     
     def _validate_type(self,new_type:any) -> callable:
@@ -201,6 +246,27 @@ class ConfigVariable(object):
             VariableType = components["type"],
             value = components["value"]
         )
+
+    @staticmethod
+    def register(varType:type):
+
+        def decorator(func):
+
+            # Wrap user func
+            @functools.wraps(func)
+            def wrapper(new_value,cVarName,cVarType):
+                try:
+                    value = func(new_value)
+                except Exception as e:
+                    raise ConfigConversionError(f"[ConfigVariable '{cVarName}'] Error while trying to convert '{new_value}' to {cVarType}:\n{e}")
+
+                return value
+
+            # Register func
+            _SUPPORTED_TYPE[varType.__name__] = varType
+            _CONVERSION_FUNC[varType] = wrapper
+            return wrapper
+        return decorator
 
 
 
