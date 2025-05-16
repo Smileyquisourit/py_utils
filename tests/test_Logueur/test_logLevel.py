@@ -7,7 +7,7 @@
 
 import unittest
 
-from Logueur.log_level import *
+from py_utils.Logueur.log_level import *
 
 class test_LogLevel(unittest.TestCase):
     """ Tests for the LogLevel class 

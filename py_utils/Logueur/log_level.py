@@ -2,15 +2,35 @@
 # ---------------------------------------------------------
 # The different log levels
 # ---------------------------------------------------------
-# ./Logueur/log_level.py
+# ./py_utils/Logueur/log_level.py
 
 """ 
 ================
 Module log_level
 ================
 
-Implement the LogLevel class, an Enum class for the 
-differents levels supported.
+Implement the LogLevel class, an Enum class for the differents levels supported. The different
+levels are detailed in the following table:
+
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | Name    | number | Description                                                                                   |
+    +=========+========+===============================================================================================+
+    | DEBUG   | 0      | Detailed information used for diagnostic.                                                     |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | INFO    | 1      | General information for normal operations.                                                    |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | WARNING | 2      | Indication that something unexpected happened, but the application is still running.          |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | ERROR   | 3      | Serious issue that has occurred, causing some part of the application to malfunction or fail. |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+    | FATAL   | 4      | Critical error causing the termination of the application.                                    |
+    +---------+--------+-----------------------------------------------------------------------------------------------+
+
+Classes
+-------
+LogLovel(Enum): 
+    An Enum class for the differents levels, with a factory method for constructing a member of
+    this class from a string or an int. This class also implement rich comparison operators.
 """
 
 from enum import Enum
@@ -49,6 +69,7 @@ class LogLevel(Enum):
 
     # self == other
     def __eq__(self, other:Union['LogLevel',int,str]) -> bool:
+        """ Equality between 2 LogLevel member """
 
         if not isinstance(other,(LogLevel,int,str)):
             return False
@@ -60,6 +81,7 @@ class LogLevel(Enum):
     
     # self != other
     def __ne__(self, other:Union['LogLevel',int,str]) -> bool:
+        """ Inequality between 2 LogLevel member """
 
         if not isinstance(other,(LogLevel,int,str)):
             return False
@@ -71,6 +93,7 @@ class LogLevel(Enum):
     
     # self > other
     def __gt__(self, other:Union['LogLevel',int,str]) -> bool:
+        """ Greater-than comparison between 2 LogLevel member """
 
         if not isinstance(other,(LogLevel,int,str)):
             return False
@@ -82,6 +105,7 @@ class LogLevel(Enum):
     
     # self >= other
     def __ge__(self, other:Union['LogLevel',int,str]) -> bool:
+        """ Greater-or-equal comparison between 2 LogLevel member """
 
         if not isinstance(other,(LogLevel,int,str)):
             return False
@@ -93,6 +117,7 @@ class LogLevel(Enum):
     
     # self < other
     def __lt__(self, other:Union['LogLevel',int,str]) -> bool:
+        """ Lower-than comparison between 2 LogLevel member """
 
         if not isinstance(other,(LogLevel,int,str)):
             return False
@@ -104,6 +129,7 @@ class LogLevel(Enum):
     
     # self <= other
     def __le__(self, other:Union['LogLevel',int,str]) -> bool:
+        """ Lower-or-equal comparison between 2 LogLevel member """
 
         if not isinstance(other,(LogLevel,int,str)):
             return False
@@ -138,7 +164,7 @@ class LogLevel(Enum):
         # Type Check:
         # -----------
         if not isinstance(level,(str,int)):
-            raise ValueError(f"The level arguments for instanciating an enum member of the LogLevel class must be a str or an int, instead I've received a '{type(level)}'")
+            raise TypeError(f"The level arguments for instanciating an enum member of the LogLevel class must be a str or an int, instead I've received a '{type(level)}'")
         
         # Creating from str:
         # ------------------

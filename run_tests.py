@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # Process for running tests
 # ---------------------------------------------------------
-# ./tests/run_tests.py
+# ./run_tests.py
 
 import unittest
 import argparse
