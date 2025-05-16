@@ -4,4 +4,7 @@
 # ---------------------------------------------------------
 # ./__init__.py
 
-from . import Logueur
+# Expose public interface:
+# ------------------------
+#from Logueur import Logueur
+#from ConfigHelper import C
