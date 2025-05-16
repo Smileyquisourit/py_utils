@@ -9,7 +9,9 @@ import re
 from .config_variable import ConfigVariable
 
 
-_NEW_SECTION_RE = re.compile(r"[[](?P<name>.+)[]]")
+# Escape '[' and ']' with backsalsh for avoid FutureWarning (since re V3.7)
+# see https://docs.python.org/3/library/re.html
+_NEW_SECTION_RE = re.compile(r"\[(?P<name>.+)\]")
 _NO_FALLBACK = object()
 
 
