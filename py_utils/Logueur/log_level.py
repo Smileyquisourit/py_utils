@@ -12,19 +12,19 @@ Module log_level
 Implement the LogLevel class, an Enum class for the differents levels supported. The different
 levels are detailed in the following table:
 
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | Name    | number | Description                                                                                   |
-    +=========+========+===============================================================================================+
-    | DEBUG   | 0      | Detailed information used for diagnostic.                                                     |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | INFO    | 1      | General information for normal operations.                                                    |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | WARNING | 2      | Indication that something unexpected happened, but the application is still running.          |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | ERROR   | 3      | Serious issue that has occurred, causing some part of the application to malfunction or fail. |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | FATAL   | 4      | Critical error causing the termination of the application.                                    |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
++---------+--------+-----------------------------------------------------------------------------------------------+
+| Name    | number | Description                                                                                   |
++=========+========+===============================================================================================+
+| DEBUG   | 0      | Detailed information used for diagnostic.                                                     |
++---------+--------+-----------------------------------------------------------------------------------------------+
+| INFO    | 1      | General information for normal operations.                                                    |
++---------+--------+-----------------------------------------------------------------------------------------------+
+| WARNING | 2      | Indication that something unexpected happened, but the application is still running.          |
++---------+--------+-----------------------------------------------------------------------------------------------+
+| ERROR   | 3      | Serious issue that has occurred, causing some part of the application to malfunction or fail. |
++---------+--------+-----------------------------------------------------------------------------------------------+
+| FATAL   | 4      | Critical error causing the termination of the application.                                    |
++---------+--------+-----------------------------------------------------------------------------------------------+
 
 Classes
 -------
@@ -152,13 +152,13 @@ class LogLevel(Enum):
 
         Parameters
         ----------
-        :param level str|int:
-            The wanted level.
+        :param level: The wanted level.
+        :type level: str or int
 
         Return
         ------
-        :return LogLevel:
-            The log level wanted.
+        :return: The log level wanted.
+        :rtype: LogLevel
         """
 
         # Type Check:

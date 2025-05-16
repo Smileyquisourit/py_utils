@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # A log message's topic and a topic filter
 # ---------------------------------------------------------
-# ./Logueur/log_message.py
+# ./py_utils/Logueur/log_message.py
 
 """ 
 ================
@@ -30,9 +30,11 @@ class LogMessage():
     - It's level
     - It's topic
     - The actual message to dispay
+    - The datetime of it's creation
 
     An instance of this class also contains the format of the message to
-    be used.
+    be used, the default is
+        `[{level}] {topic}\\n{body}\\n\\n`
     """
 
     _msg_fmt = "[{level}] {topic}\n{body}\n\n"
@@ -43,21 +45,14 @@ class LogMessage():
 
         Should at least contains '{body}', and will be formatted
         using 
-        
-        `str.format(body=self.body,level=self.level,topic=self.topic.topic)`
+            `str.format()`
+        called with 'body', 'level', 'topic', 'date', and 'time'
         """
         return self._msg_fmt
     @msg_fmt.setter
     def msg_fmt(self, msg_fmt:str) -> None:
-        """ The string to use for formatting the log message.
-
-        Should at least contains '{body}', and will be formatted
-        using 
-        
-        `str.format(body=self.body,level=self.level,topic=self.topic.topic)`
-        """
         if not isinstance(msg_fmt,str):
-            raise ValueError(f"The msg_fmt must a str, instead I've received a '{type(msg_fmt)}'")
+            raise TypeError(f"The msg_fmt must a str, instead I've received a '{type(msg_fmt)}'")
         if not r'{body}' in msg_fmt:
             raise ValueError("The msg_fmt must at least contains {body} !")
         self._msg_fmt = msg_fmt
@@ -66,24 +61,31 @@ class LogMessage():
                  tz:Optional[datetime.timezone]=None) -> None:
         """ Constructor of LogMessage
 
-        Construct a log message. If no format (`fmt`) is specified, the default one is used\n
+        Construct a log message. If no format (`fmt`) is specified, the default one is used:
+        
         `[{level}] {topic}\\n{body}\\n\\n`
 
         When creating a log message, the time is computed (using datetime.datetime.now()) and is passed when
-        formating the message. 2 options are passed:
+        formating the message. 2 options are passed along with the ones of the default format:
         - 'date' = datetime.datetime.now().date().isoformat()
         - 'time' = datetime.datetime.now().timetz().isoformat()
 
         parameters
         ----------
-        :param body str:
-            The message to print in the log
-        :param level LogLevel:
-            The level of the message
-        :param topic LogTopic:
-            The topic of the message
-        :param fmt str|None:
-            The format to use for formatting the message
+        :param body: The message to print in the log
+        :type body: str
+
+        :param level: The level of the message
+        :type level: LogLevel
+
+        :param topic: The topic of the message
+        :type topic: LogTopic
+
+        :param fmt: The format to use for formatting the message
+        :type fmt: str, optional
+
+        :param tz: The timezone to use when generating the datetime object.
+        :type tz: datetime.timezone, optional
         """
 
         # Type Check:

@@ -3,17 +3,19 @@
 # Test for a log's outputs
 # ---------------------------------------------------------
 # ./tests/test_Logueur/test_logOut.py
-""" Tests for the log_out module """
+""" Tests for the log_out module 
+"""
 
 import io
 import unittest
 
-from Logueur.log_out import *
-from Logueur.log_topic import LogTopic as LogTopic
+from py_utils.Logueur.log_out import *
+from py_utils.Logueur.log_topic import LogTopic as LogTopic
 
 mockVar = False
 class MockBaseLogHandler(BaseLogHandler):
     def _write(self,msg:LogMessage):
+        """ MockLogHandler._write """
         global mockVar
         mockVar = True
 
@@ -21,54 +23,54 @@ class MockBaseLogHandler(BaseLogHandler):
 class test_baseLogHandler(unittest.TestCase):
     """ Tests for the BaseLogHandler class
 
-    As this class is an abstract one, we defined the
-    MockBaseLogHandler, enabling the testing on this class.
+    As this class is an abstract one, we defined the MockBaseLogHandler, enabling the 
+    testing on this class. The _write method of this mock class only set a globale variable
+    to True.
 
-    We test each method separalty, excepted for the _write
-    method. The emit method is tested with the _write of the
-    MockBaseLogHandler _write method, which set a global variable
-    to True if the message is writted or not.
+    We only test briefly the _filtrate and emit message, as they don't have a complicated
+    logic and they mostly use functionality tested else where.
     """
-    
-    def setUp(self):
-
-        level = LogLevel.INFO
-        filter = LogTopicFilter("key1")
-        self.log = MockBaseLogHandler(level,filter)
-
-        self.message_good = LogMessage("A msg body",LogLevel.WARNING,LogTopic("key1"))
-        self.message_bad1 = LogMessage("A msg body",LogLevel.WARNING,LogTopic("key2"))
-        self.message_bad2 = LogMessage("A msg body",LogLevel.DEBUG,LogTopic("key1"))
-        self.message_bad3 = LogMessage("A msg body",LogLevel.DEBUG,LogTopic("key2"))
 
     def test_baseFiltrate(self):
 
-        self.assertTrue(self.log._filtrate(self.message_good))
-        self.assertFalse(self.log._filtrate(self.message_bad1))
-        self.assertFalse(self.log._filtrate(self.message_bad2))
-        self.assertFalse(self.log._filtrate(self.message_bad3))
+        log = MockBaseLogHandler(LogLevel.INFO, "key1")
+
+        msg_good = LogMessage("body",LogLevel.WARNING, LogTopic("key1"))
+        msg_bad1 = LogMessage("body",LogLevel.DEBUG, LogTopic("key1"))
+        msg_bad2 = LogMessage("body",LogLevel.ERROR, LogTopic("NotKey1"))
+
+        self.assertTrue(log._filtrate(msg_good))
+        self.assertFalse(log._filtrate(msg_bad1))
+        self.assertFalse(log._filtrate(msg_bad2))
     def test_baseEmit(self):
 
+        # Testing emit by setting the global var to false, and checking if it
+        # was modified to True (when the msg is emitted) or untouched (when the
+        # msg isn't emited)
+
         global mockVar
+
+        log = MockBaseLogHandler(LogLevel.INFO, "key1")
+
+        msg_good = LogMessage("body",LogLevel.WARNING, LogTopic("key1"))
+        msg_bad1 = LogMessage("body",LogLevel.DEBUG, LogTopic("key1"))
+        msg_bad2 = LogMessage("body",LogLevel.ERROR, LogTopic("NotKey1"))
         
-        mockVar = False; self.log.emit(self.message_good)
+        mockVar = False; log.emit(msg_good)
         self.assertTrue(mockVar)
 
-        mockVar = False; self.log.emit(self.message_bad1)
+        mockVar = False; log.emit(msg_bad1)
         self.assertFalse(mockVar)
 
-        mockVar = False; self.log.emit(self.message_bad2)
-        self.assertFalse(mockVar)
-
-        mockVar = False; self.log.emit(self.message_bad3)
+        mockVar = False; log.emit(msg_bad2)
         self.assertFalse(mockVar)
 
 class test_logConsoleHandler(unittest.TestCase):
     """ Tests for the LogConsoleHandler class
 
-    As this class herits from the BaseLogHandler one,
-    we only test here the _write method, by capturing the
-    output of the console.
+    As this class herits from the BaseLogHandler one, there is only two
+    functinality to be aspect of the class to be tested: the constructor
+    and the _write method.
     """
 
     @classmethod
@@ -92,6 +94,7 @@ class test_logConsoleHandler(unittest.TestCase):
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
 
+    # With or whitout color:
     def test_uniqueOutput(self):
         """ test without differencing between stdout and stderr, and without color """
         log = ConsoleLogHandler(LogLevel.DEBUG,LogTopicFilter("#"),supportColor=False,useStderr=False)
@@ -165,6 +168,11 @@ class test_logConsoleHandler(unittest.TestCase):
         self.assertEqual(self.mockStdout.getvalue(),expected_stdout)
         self.assertEqual(self.mockStdErr.getvalue(),expected_stderr)
 
-class test_logFileHandler(unittest.TestCase): #TODO
+class test_FileLogHandler(unittest.TestCase):
     """ Tests for the LogFileHandler class
     """
+
+class test_RotaryFileLogHandler(unittest.TestCase): #TODO
+    """ Tests for the RotaryFileLogHandler class
+    """
+    log = RotaryFileLogHandler()

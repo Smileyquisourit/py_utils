@@ -6,14 +6,16 @@
 """ Tests for the log_message module """
 
 import unittest
+import datetime
+import unittest.mock
 
-from Logueur.log_message import *
+from tests import mockDatetime
+from py_utils.Logueur.log_message import *
 
 class test_LogMessage(unittest.TestCase):
     """ Tests for the LogMessage class
 
-    The only functionality to be tested of the LogMessage
-    class is it's formatting functionality.
+    We test for the format and the time.
     """
 
     def test_defaultFmt(self):
@@ -48,3 +50,28 @@ class test_LogMessage(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             LogMessage(body,level,topic,fmt=fmt)
+
+    def test_fmtWithTime(self):
+
+        args = {
+            'body'  : "some message's body",
+            'level' : LogLevel(1),
+            'topic' : LogTopic("msg.topic"),
+            'fmt'   : '{date}T{time} :: {body}\n'
+        }
+
+        _mockDatetime = mockDatetime(datetime.datetime.now())
+        with unittest.mock.patch('datetime.datetime',_mockDatetime) as mock:
+            expected = args["fmt"].format(
+                date=mock.now().date(), time=mock.now().time(), **args
+            )
+            msg = LogMessage(**args)
+            self.assertEqual(expected, str(msg))
+
+        _mockDatetime = mockDatetime(datetime.datetime.now(datetime.UTC))
+        with unittest.mock.patch('datetime.datetime',_mockDatetime) as mock:
+            expected = args["fmt"].format(
+                date=mock.now().date(), time=mock.now().timetz(), **args
+            )
+            msg = LogMessage(tz=datetime.UTC,**args)
+            self.assertEqual(expected, str(msg))

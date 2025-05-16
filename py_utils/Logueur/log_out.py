@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # Log output
 # ---------------------------------------------------------
-# ./Logueur/log_out.py
+# ./py_utils/Logueur/log_out.py
 
 """ 
 ==============
@@ -17,14 +17,24 @@ This module also implement the following log's output:
 - FileLogHandler
 - RotaryFileLogHandler
 
-Objects
+Classes
 -------
 
-ConsoleLogHandler:
-    Represent the interface to write log messages to the console.
+BaseLogHandler(ABC):
+    An abstract base class describing the interface for creating a log handler. It also implement some functionalities
+    that should be shared by all loh handler.
 
-FileLogHandler:
-    f
+ConsoleLogHandler(BaseLogHandler):
+    Implement the interface to write log messages to the standard output (generaly the console). It contains differents
+    options for coloring the message and use the standart error output for `ERROR` and `FATAL` message instead of the standard
+    output.
+
+FileLogHandler(BaseLogHandler):
+    Implement the interface for writing log messages to a file.
+
+RotaryFileLogHandler(BaseLogHandler):
+    Implement the interface for writing log messages to a file, while changing file if the previous one's size exceed a fixed
+    amount, and deleting oldest file on some conditions.
 """
 
 #TODO: add a database output
@@ -41,6 +51,8 @@ from .log_level import LogLevel
 from .log_topic import LogTopicFilter
 from .log_message import LogMessage
 
+# Base class
+# ----------
 
 class BaseLogHandler(ABC):
     """ 
@@ -59,18 +71,19 @@ class BaseLogHandler(ABC):
 
         Parameters
         ----------
-        :param level LogLevel:
-            The level used for filtrate log messages.
-        :param filter LogTopicFilter:
-            The topic filtrer used for filtrate log messages.
+        :param level: The level used to filtrate log messages.
+        :type level: LogLevel
+
+        :param filter: The topic filter used to filtrate log messages.
+        :type filter: LogTopicFilter
         """
 
         # Type Check:
         # -----------
         if not isinstance(level,LogLevel):
-            raise ValueError(f"The level must be a LogLevel, instead I've received a '{type(level)}'")
+            raise TypeError(f"The level must be a LogLevel, instead I've received a '{type(level)}'")
         if not isinstance(filter,LogTopicFilter):
-            raise ValueError(f"The topic filter must be a LogTopicFilter, instead I've received a '{type(level)}'")
+            raise TypeError(f"The topic filter must be a LogTopicFilter, instead I've received a '{type(level)}'")
 
 
         # Initialization:
@@ -82,25 +95,30 @@ class BaseLogHandler(ABC):
     @abstractmethod
     def _write(self,msg:LogMessage) -> None:
         """ 
-        Abstract method that should implement how the message is emitted. 
+        Abstract method that should implement how the message is emitted.
+
+        Parameters
+        ----------
+        :param msg: The message to write.
+        :type msg: LogMessage
         """
         pass
 
     def _filtrate(self,msg:LogMessage) -> bool:
         """ Check if a message should be emited.
 
-        Check if the level of the message is more critical
-        than the level registered, and if the topic match.
+        Check if the level of the message is more critical than the level registered, and if the 
+        topic match.
 
         Parameters
         ----------
-        :param msg LogMessage:
-            The message to check.
+        :param msg: The message to check.
+        :type msg: LogMessage
 
         Return
         ------
-        :return bool:
-            If the topic is valid or not.
+        :return: If the topic is valid or not.
+        :rtype: bool
         """
 
         # Check level:
@@ -113,20 +131,15 @@ class BaseLogHandler(ABC):
         return self.filter.match(msg.topic)
 
     def emit(self,msg:LogMessage) -> None:
-        """ 
-        ====
-        emit
-        ====
-        
-        Emit a message to the log.
+        """ Emit a message to the log.
         
         Filtrate the message given in argument and emit it if it passes the filter and has a 
         correct log level.
         
         Parameters
         ----------
-        :param msg LogMessage:
-            The message to emit.
+        :param msg: The message to emit.
+        :type msg: LogMessage
         """
 
         # Change the docstring of the emit methode by the one of the _write
@@ -145,6 +158,64 @@ class BaseLogHandler(ABC):
             self._write(msg)
 
 
+# Helper Class:
+# -------------
+
+class LogDirEntry(object):
+    """
+    ===========
+    LogDirEntry
+    ===========
+    
+    A sort of subclass of the DirEntry returned by os.scandir(), with an added attribut containing the time 
+    of creation determined using the file's name or other means.
+
+    All the methods/attributes of DirEntry are accesible by using the __getattribute__ of the DirEntry with 
+    this class __getattr__.
+    """
+
+    creationTime: datetime.datetime
+
+    def __init__(self,dirEntry:os.DirEntry, creationTime:datetime.datetime):
+        """ Constructor of LogDirEntry.
+
+        A sort of subclass of the DirEntry returned by os.scandir(), with an added attribut containing the time 
+        of creation determined using the file's name or other means.
+
+        Parameters
+        ----------
+        :param dirEntry: The DirEntry object that should be sort of subclassed
+        :type dirEntry: os.DirEntry
+
+        :param creationTime: The datetime creation time of the file of the associated DirEntry.
+        :type creationTime: datetime.datetime
+        """
+
+        # Type check:
+        # -----------
+        if not isinstance(dirEntry,os.DirEntry):
+            raise TypeError(f"The dirEntry should be a 'os.DirEntry' object, instead I've received a {type(dirEntry)}")
+        if not isinstance(creationTime,datetime.datetime):
+            raise TypeError(f"The creation time should be a 'datetime.datetime' object, instead I've received a {type(creationTime)}")
+        
+        # Initialise intance:
+        # -------------------
+        self._dirEntry = dirEntry
+        self.creationTime = creationTime
+
+    def __getattr__(self, name) -> any:
+        return self._dirEntry.__getattribute__(name)
+    
+    def __repr__(self) -> str:
+        return f"<LogDirEntry '{self.name}'>"
+    
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+# Log handlers:
+# -------------
+
 class ConsoleLogHandler(BaseLogHandler):
     """ 
     =================
@@ -153,11 +224,10 @@ class ConsoleLogHandler(BaseLogHandler):
 
     Represent the interface to write log messages to the console.
 
-    An instance of this class can be personalised with two options. The first one is
-    to use color when printing the message (if the terminal support it) with the 
-    `supportColor` option of the constructor, and if the instance should log the
-    `WARNING`, `ERROR`, and `FATAL` standard output of the terminal with the 
-    `useStderr` option of the constructor.
+    An instance of this class can be personalised with two options. The first one is to use color
+    when printing the message (if the terminal support it) with the `supportColor` option of the 
+    constructor, and if the instance should log the `WARNING`, `ERROR`, and `FATAL` standard output 
+    of the terminal with the `useStderr` option of the constructor.
     """
 
     _FG_COLORS = {
@@ -178,17 +248,24 @@ class ConsoleLogHandler(BaseLogHandler):
 
         Parameters
         ----------
-        :param level LogLevel:
-            The level used for filtrate log messages.
-        :param filter LogTopicFilter:
-            The topic filtrer used for filtrate log messages.
-        :param supportColor bool:
-            If the console support color, and if colors should be used.
+        :param level: The level used for filtrate log messages.
+        :type level: LogLevel
+
+        :param filter: The topic filtrer used for filtrate log messages.
+        :type filter: LogTopicFilter
+
+        :param supportColor: If the console support color, and if colors should be used.
             Default to `True`
-        :param useStderr bool:
-            True to use stderr for warning, error and fatal message.
+        :type supportColor: bool
+
+        :param useStderr bool: True to use stderr for warning, error and fatal message.
             Default to `True`
+        :type useStderr: bool
         """
+
+        # Base initialisation and type check:
+        # -----------------------------------
+        super().__init__(level,filter)
 
         # Type Check:
         # -----------
@@ -199,7 +276,6 @@ class ConsoleLogHandler(BaseLogHandler):
 
         # Initialization:
         # ---------------
-        super().__init__(level,filter)
         self._supportColor = supportColor
         self._useStderr = useStderr
 
@@ -218,14 +294,14 @@ class ConsoleLogHandler(BaseLogHandler):
 
         Parameters
         ----------
-        :param msg LogMessage:
-            The log message to emit.
+        :param msg: The log message to emit.
+        :type msg: LogMessage
         """
 
         # Type Check:
         # -----------
         if not isinstance(msg,LogMessage):
-            raise ValueError(f"The message to emit must be a LogMessage, instead I've received a '{type(msg)}'")
+            raise TypeError(f"The message to emit must be a LogMessage, instead I've received a '{type(msg)}'")
         
         # Color the message:
         # ------------------
@@ -242,7 +318,6 @@ class ConsoleLogHandler(BaseLogHandler):
             out = sys.stdout
         out.write(msg_str)
         out.flush()
-
 
 class FileLogHandler(BaseLogHandler):
     """ 
@@ -277,30 +352,37 @@ class FileLogHandler(BaseLogHandler):
 
         Parameters
         ----------
-        :param level LogLevel:
-            The level used for filtrate log messages.
-        :param filter LogTopicFilter:
-            The topic filtrer used for filtrate log messages.
-        :param filename str|None:
-            The name of the log file to create, if no name is supplied, a generic
-            name will be generated following ISO 8601 format: log_YYYY-MM-DDT:HH:MM:SS
-        :param action str:
-            Flag indicating what to do if a file with the same name already exist.
+        :param level: The level used for filtrate log messages.
+        :type level: LogLevel
+
+        :param filter : The topic filtrer used for filtrate log messages.
+        :type filter: LogTopicFilter
+
+        :param filename: The name of the log file to create, if no name is supplied, a generic
+            name will be generated following ISO 8601 time format: log_YYYY-MM-DDT:HH:MM:SS[+-]HH:MM
+            using UTC as timezone.
+        :type filename: str or None
+
+        :param action: Flag indicating what to do if a file with the same name already exist.
             Default to `abort`.
+        :type action: str
         """
+
+        # Base initialisation and type check:
+        # -----------------------------------
+        super().__init__(level, filter)
 
         # Type Check:
         # -----------
         if filename and not isinstance(filename,str):
-            raise ValueError(f"The filename must be a str, instead I've received a '{type(filename)}'")
+            raise TypeError(f"The filename must be a str, instead I've received a '{type(filename)}'")
         if not isinstance(action,str):
-            raise ValueError(f"The action argument must be a str, instead I've received a '{type(action)}'")
+            raise TypeError(f"The action argument must be a str, instead I've received a '{type(action)}'")
         if not action in self._actions:
             raise ValueError(f"The action argument must be in {self._actions}, instead I've received '{action}'")
         
         # Initialize instance:
         # --------------------
-        super().__init__(level, filter)
         if not filename:
             filename = self._generateLogFilename()
 
@@ -325,12 +407,17 @@ class FileLogHandler(BaseLogHandler):
     
     def _write(self, msg:LogMessage) -> None:
         """ Append a message to the end of the log file.
+
+        Parameters
+        ----------
+        :param msg: The message to write.
+        :type msg: LogMessage
         """
 
         # Type Check:
         # -----------
         if not isinstance(msg,LogMessage):
-            raise ValueError(f"The message to emit must be a LogMessage, instead I've received a '{type(msg)}'")
+            raise TypeError(f"The message to emit must be a LogMessage, instead I've received a '{type(msg)}'")
         
         # Emit the message:
         # -----------------
@@ -339,18 +426,31 @@ class FileLogHandler(BaseLogHandler):
     
     @staticmethod
     def _generateLogFilename() -> str:
-        """ generate a log filename with ISO 8601 format """
+        """ generate a log filename with ISO 8601 format using UTC timezone 
+        
+        Returns
+        -------
+        :return: The datetime in ISO 8601 format, using UTC timezone, prepended by `'log_'`
+        """
         now = datetime.datetime.now(datetime.timezone.utc)
         return "log_"+now.isoformat()
     @staticmethod
     def _makeValideFilename(filename:str) -> str:
         """ Make a valide filename
 
-        Take a filename and check if it's valide. If it's not,
-        the string '_(n)' will be appended to the file name, with
-        n a integer. This integer will start at 1, and will be
-        incremented by one the necessary number of time for the
-        filename to be unique.
+        Take a filename and check if it's valide. If it's not, the string `'_(n)'` will be appended to 
+        the file name, with `n` a integer. This integer will start at 1, and will be incremented by one 
+        the necessary number of time for the filename to be unique.
+
+        Parameters
+        ----------
+        :param filename: The filename to check
+        :type filename: str
+
+        Return
+        ------
+        :return: A filename valid
+        :rtype: str
         """
         base, ext = os.path.splitext(filename)
         i = 1
@@ -359,40 +459,16 @@ class FileLogHandler(BaseLogHandler):
             i += 1
         return filename
 
-
-
-
-class LogDirEntry(object):
-    """
-        A sort of subclass of the DirEntry returned by os.scandir(),
-        with a added attribut containing the time of creation determined
-        used the file's name.
-
-        Also contain a static method for reconstructing a time (an instance 
-        of datetime.datetime) determined using the file's name and a pattern.
-
-        All the methods/attributes of DirEntry are accesible by using the
-        __getattribute__ of the DirEntry in this class __getattr__.
-    """
-
-    def __init__(self,dirEntry, creationTime:datetime.datetime):
-
-        # Type check:
-        if not isinstance(creationTime,datetime.datetime):
-            raise TypeError(f"The creation time should be a 'datetime.datetime' object, instead I've received a {type(creationTime)}")
-        self._dirEntry = dirEntry
-        self.creationTime = creationTime
-
-    def __getattr__(self, name):
-        return self._dirEntry.__getattribute__(name)
-    
-    def __repr__(self):
-        return f"<LogDirEntry '{self.name}'>"
-    
-    def __str__(self):
-        return self.__repr__()
-
 class RotaryFileLogHandler(BaseLogHandler):
+    """ 
+    ====================
+    RotaryFileLogHandler
+    ====================
+
+    Represent the interface to write log messages to a set of logfile. A new logfile is generated
+    when the previous one's size exceed a certain size, determined by the user, and only a fixed
+    amount of logfile is keep (determined by the user).
+    """
 
     _ISO_FMT_STR_PATTERN = \
         r"{base}(?P<date>\d{{4}}-\d{{2}}-\d{{2}}){timeSep}(?P<time>\d{{2}}:\d{{2}}:\d{{2}})" + \
@@ -405,10 +481,8 @@ class RotaryFileLogHandler(BaseLogHandler):
     @property
     def logfiles(self) -> tuple[LogDirEntry]:
         """ 
-            A tuple of LogDirEntry obtained with `os.scandir`.
-
-            An attribute `creationTime` is added wich represent the creation time
-            of the file using it's name.
+            A tuple of LogDirEntry obtained with a DirEntry obtained by `os.scandir`, and
+            the creation time obtained from it's name.
         """
         _logFiles =  tuple(entry for entry in os.scandir(self._directory) if self._filename_pattern.fullmatch(entry.name))
         _creationTimes = tuple(self._reconstruct_time_from_filename(file.name) for file in _logFiles)
@@ -418,6 +492,63 @@ class RotaryFileLogHandler(BaseLogHandler):
     def __init__(self, level: LogLevel, filter: LogTopicFilter, baseFilename:str="log_", directory:str='.',
                  log_ext: str = '', timeSep:str='T', tz:datetime.timezone=datetime.timezone.utc,
                  maxSizeFile:int=10*1024**2, maxLog:int=5, maxLogUnit:str='file'):
+        """ Constructor of RotaryFileLogHandler.
+
+        An instance of RotaryFileLogHandler is an interface to write log messages to a set of files. A new 
+        file is created when the previous one's size exceed the limit specified by `maxSizeFile`. The log's
+        files aren't all conserved, and at some point old files are deleted. This behavior is controlled with
+        the two arguments `maxLog` and `maxLogUnit`, where `maxLog` is a `int` and it is interpreted in different
+        ways depending on the value of `maxLogUnit`:
+        - if `maxLogUnit='file'` : only the `maxLog` latest files are keep.
+        - if `maxLogUnit='day'` : only files no older than `maxLog` days are conserved.
+        - if `maxLogUnit='week'` : only files no older than `maxLog` weeks are conserved.
+        - if `maxLogUnit='month'` : only files no older than `maxLog` months are conserved.
+
+        This file clean-up only occurs when a new logfile is requested (du to the size limit), so if you allow a
+        large size for a log file, there is no garanty that file older than what you requested are deleted.
+
+        Parameters
+        ----------
+        :param level: The level used for filtrate log messages.
+        :type level: LogLevel
+
+        :param filter: The topic filtrer used for filtrate log messages.
+        :type filter: LogTopicFilter
+
+        :param baseFilename: The base used to construct the log's filenames. The datetime using ISO 8601 format
+            will be append to this base. Default is `'log_'`
+        :type baseFilename: str, optional
+
+        :param directory: The directory in wich to save the logs file. As for now, this directory will not be created !
+            Default is the current directory.
+        :type directory: str, optional
+
+        :param log_ext: The extension of the log's filenames. Default is no extention `''`
+        :type log_ext: str, optional
+
+        :param timeSep: The separator to use between the date and the time in the ISO 8601 format for datetime. Default
+            is `'T'`
+        :type timeSep: str, optional
+
+        :param tz: The time zone to use when generating datetime for the log's filenames. Default is UTC.
+        :type tz: datetime.timezone, optional
+
+        :param maxFileSize: The maximum size of a log file before requesting a new file, in byte. Default is 10MB
+        :type maxFileSize: int, optional
+
+        :param maxLog: A positive integer that defines the retention threshold. The way this integer is interpreted
+            depends on the `maxLogUnit` argument. Default to 5.
+        :type maxLog: int, optional
+
+        :param maxLogUnit: An indicator of how the `maxLog` value should be interpreted. If `'file'`, it's interpreted
+            as the maximum number of log files to keep, if time based (`'day'`,`'week'`, or `'month'`), it's interpreted
+            as the maximum age of a log file. Default to `'file'`
+        :type maxLogUnit: str, optional
+        """
+
+        # Base initialisation and type check:
+        # -----------------------------------
+        super().__init__(level, filter)
         
         # Type/Value Check:
         # -----------------
@@ -444,10 +575,13 @@ class RotaryFileLogHandler(BaseLogHandler):
         absPath_dir = os.path.abspath(directory)
         if not os.path.isdir(directory):
             raise FileNotFoundError(f"The directory {absPath_dir} wasn't found!")
+        
+        # Check maxLog:
+        if maxLog <= 0:
+            raise ValueError(f"The 'maxLog' should be stricly positiv (> 0), but I've received {maxLog}")
 
         # Initialize instance:
         # --------------------
-        super().__init__(level, filter)
         self._directory = absPath_dir
         self._filename_fmt = self._LOG_FILE_FMT.format(base=baseFilename,timeSep=timeSep,ext=log_ext)
         self._filename_pattern = re.compile(self._ISO_FMT_STR_PATTERN.format(base=baseFilename,timeSep=timeSep,ext=log_ext))
@@ -470,7 +604,7 @@ class RotaryFileLogHandler(BaseLogHandler):
     # Methods for creating/cleaning filelog:
     # --------------------------------------
 
-    def _clean_num(self,tmp_rec=0):
+    def _clean_num(self):
         """ Check all known logfile from number and remove the oldest one if their is too many. """
         _logFiles = self.logfiles
         if len(_logFiles) > self._maxLog:
@@ -490,11 +624,11 @@ class RotaryFileLogHandler(BaseLogHandler):
         # Recursive calls until their is no more than self._maxLog files,
         # That should never happen, but it's their just in case.
         if len(self.logfiles) > self._maxLog:
-            warnings.warn("At one point, log's files weren't correctly cleaned (logFile by number) !!")
-            self._clean_num(tmp_rec=tmp_rec+1)
+            warnings.warn("At one point, log's files weren't correctly cleaned (maxLogUnit is 'file') !!")
+            self._clean_num()
 
     def _clean_date(self):
-        """ Check all known logfile from date """
+        """ Check all known logfile from datetime. """
 
         # Compute max_timedelta
         if self._maxLogUnit == 'day':
@@ -515,8 +649,14 @@ class RotaryFileLogHandler(BaseLogHandler):
             if dt < datetime.timedelta(0):
                 raise Exception(f"One logfile is in the future!! The logfile name: {file.name}")
 
-    def _request_new_logfile(self):
-        """ Create a new log file and then call right method for cleaning logfile """
+    def _request_new_logfile(self) -> str:
+        """ Create a new log file and then call right method for cleaning logfile. 
+        
+        Return
+        ------
+        :return: The name of the new logfile created.
+        :rtype: str
+        """
 
         # Create new file
         now = datetime.datetime.now(self._tz)
@@ -545,7 +685,23 @@ class RotaryFileLogHandler(BaseLogHandler):
     # Private methods:
     # ----------------
 
-    def _reconstruct_time_from_filename(self,filename:str):
+    def _reconstruct_time_from_filename(self,filename:str) -> datetime.datetime:
+        """ Compute the datetime of the creation of a logfile, using it's name.
+
+        Parameters 
+        ----------
+        :param filename: The filename of the file for wich the datetime creation is requested.
+        :type filename: str
+
+        Return
+        ------
+        :return: The datetime.datetime object corresponding to the creation of the file.
+        :rtype: datetime.datetime
+
+        Raise
+        -----
+        :raises ValueError: When the format of the filename isn't recognized.
+        """
         if re_match := self._filename_pattern.match(filename):
             
             # Extract components
@@ -560,12 +716,17 @@ class RotaryFileLogHandler(BaseLogHandler):
         else:
             raise ValueError(f"The format of filename '{filename}' is invalid!")
 
-    def _write(self, msg:LogMessage):
+    def _write(self, msg:LogMessage) -> None:
         """ Write a message to the current logfile.
 
         If their no current_file (ie for the first message to be logged) or if it's
         size is greater than the max authorized, create a new file and clean-up logfiles
         according to user will, then write the message.
+
+        Parameter
+        ---------
+        :param msg: The log message to write to the file.
+        :type msg: LogMessage
         """
 
         if not self._current_file or os.path.getsize( self._current_file ) > self._maxSize:

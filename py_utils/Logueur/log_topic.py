@@ -2,22 +2,46 @@
 # ---------------------------------------------------------
 # Log messages' topic and topic filter
 # ---------------------------------------------------------
-# ./Logueur/log_level.py
+# ./py_utils/Logueur/log_level.py
 
 """ 
 ================
 Module log_topic
 ================
 
-Implement the LogTopic class, a class representing the topic of a log message, 
-and the LogTopicFilter class, a class representing a filter for log message's topic.
+This module implement differents class and functions to generate, represent and filtrate log messages'
+topics. These topics are constitued of different keys separate with a dot and supports a form of regex
+to filtrate them.
 
-Contains the two factory function for generating the message's topic.
+Classes
+-------
+LogTopic():
+    A class representing the topic of a log message, with support for equality test. This class also \
+    implement a class method for generating such a topic from the stack or the module. See
+        - :func:`_generateFromStack`
+        - :func:`_generateFromModule`
+
+LogTopicFilter():
+    A class representing a filter for log message's topic. It implement a `match` methode using the \
+    following wildcard for matching multiple keys: `'*'` and `'#'`
+
+Function
+--------
+_generateFromStack:
+    A function generating a str constitued of the `function` property of each `FrameInfo` of the \
+    execution stack, separated by a dot.
+_generateFromModule:
+    A function generating a str constitued of the module name, classe name and methode name (or just \
+    the function name if it's not a class method), separated by a dot.
 """
 
 import re
 import inspect
 from typing import Optional, Union
+
+
+# Private Functions:
+# ------------------
 
 def _generateFromStack(n_frame:int) -> str:
     """
@@ -33,13 +57,13 @@ def _generateFromStack(n_frame:int) -> str:
 
     Parameters
     ----------
-    :param n_frame int:
-        The number of frame to ignore.
+    :param n_frame: The number of frame to ignore.
+    :type n_frame: int
 
     Return
     ------
-    :return str:
-        The computed topic.
+    :return: The computed topic.
+    :rtype: str
     """
 
     # Get the stack:
@@ -74,9 +98,8 @@ def _generateFromModule(n_frame:int) -> str:
 
     Parameters
     ----------
-    :param n_frame int:
-        The frame number from wich to get the module, class, method or
-        function name.
+    :param n_frame: The frame number from wich to get the module, class, method or function name.
+    :type n_frame: int
 
     Return
     ------
@@ -110,6 +133,8 @@ def _generateFromModule(n_frame:int) -> str:
     return ".".join(topics)
 
 
+# Class definitions:
+# ------------------
 
 class LogTopic():
     """ 
@@ -137,14 +162,14 @@ class LogTopic():
 
         Parameters
         ----------
-        :param topic str:
-            The topic of the log message.
+        :param topic: The topic of the log message.
+        :type topic: str
         """
 
         # Type Check:
         # -----------
         if not isinstance(topic, str):
-            raise ValueError(f"The topic must be a str, instead I've received a '{type(topic)}'")
+            raise TypeError(f"The topic must be a str, instead I've received a '{type(topic)}'")
         
         # Save topic:
         # -----------
@@ -152,6 +177,7 @@ class LogTopic():
     def __repr__(self) -> str:
         return self.topic
     def __eq__(self,other:Union['LogTopic',str]) -> bool:
+        """ Equality between 2 LogTopic """
         if not isinstance(other,(LogTopic,str)):
             return False
         
@@ -183,26 +209,29 @@ class LogTopic():
 
         Parameters
         ----------
-        :param n_frame int:
-            Dependending of the methode used, represent the number of frame to ignore (`stack` method) 
-            or the frame to use (`module` method)
-        :param method str|None:
+
+        :param method: 
             The method to use for generating the topic. Must be member of `["stack","module"]`. Default 
             is `module`.
+        :type method: str or None
 
-        Return:
-        topic : LogTopic
-            The topic generated.
+        :param n_frame: Dependending of the methode used, represent the number of frame to ignore
+            (`stack` method) or the frame to use (`module` method). Default to `n_frame=2`.
+        :type n_frame: int
+
+        Returns
+        -------
+        :return: The topic generated.
+        :rtype: LogTopic
         """
 
         # Type Check:
         # -----------
         if not isinstance(n_frame,int):
-            raise ValueError(f"The agument n_frame must be a int, instead I've received a '{type(n_frame)}'")
+            raise TypeError(f"The agument n_frame must be a int, instead I've received a '{type(n_frame)}'")
         if method and not isinstance(method,str):
-            raise ValueError(f"The agument method must be a str, instead I've received a '{type(method)}'")
+            raise TypeError(f"The agument method must be a str, instead I've received a '{type(method)}'")
         if not method:
-            #print(f"[DEBUG] setting method to 'module'")
             method = "module"
         
         # Value Check:
@@ -230,7 +259,7 @@ class LogTopicFilter():
 
     The following wildcard are supported
 
-    - `*` replace 1 key
+    - `*` replace 1 key or part of a key
     - `#` replace 0 to N key
 
     """
@@ -243,19 +272,19 @@ class LogTopicFilter():
         by their corresponding expression.
         
         The wildcard supported are:
-        - `*` replace one key
-        - `#` replace any number of key
+        - `*` replace one key or part of a key
+        - `#` replace any number of key, including none.
 
         Parameters
         ----------
-        :param filter str:
-            The string used for constructing the filter.
+        :param filter: The string used for constructing the filter.
+        :type filter: str
         """
 
         # Type Check:
         # -----------
         if not isinstance(filter,str):
-            raise ValueError(f"The filter must be a str, instead I've received a '{type(filter)}'")
+            raise TypeError(f"The filter must be a str, instead I've received a '{type(filter)}'")
         
         # Construct Pattern:
         # ------------------
@@ -265,6 +294,7 @@ class LogTopicFilter():
         pattern = pattern.replace('#',r'.*')
         self.pattern = re.compile(pattern)
     def __eq__(self,other:Union['LogTopicFilter',re.Pattern]) -> bool:
+        """ Equality between 2 LogTopic """
         if not isinstance(other, (LogTopicFilter,re.Pattern)):
             return False
         
@@ -284,19 +314,19 @@ class LogTopicFilter():
 
         Parameters
         ----------
-        :param topic LogTopic:
-            The topic to check.
+        :param topic: The topic to check.
+        :type topic: LogTopic
 
         Return
         ------
-        :return bool:
-            `True` if the topic match, `False` otherwise.
+        :return: `True` if the topic match, `False` otherwise.
+        :rtype: bool
         """
 
         # Type Check:
         # -----------
         if not isinstance(topic,LogTopic):
-            raise ValueError(f"The topic must be a LogTopic, instead I've received a '{type(topic)}'")
+            raise TypeError(f"The topic must be a LogTopic, instead I've received a '{type(topic)}'")
 
         # Match Check:
         # ------------
