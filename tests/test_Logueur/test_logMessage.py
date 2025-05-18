@@ -5,8 +5,8 @@
 # ./tests/test_Logueur/test_logMessage.py
 """ Tests for the log_message module """
 
-import unittest
 import datetime
+import unittest
 import unittest.mock
 
 from tests import mockDatetime

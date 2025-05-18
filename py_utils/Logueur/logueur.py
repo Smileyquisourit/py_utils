@@ -57,7 +57,6 @@ class Logueur():
             cls._instance = object.__new__(cls)
             cls._instance.__init__(*args,**kwargs)
         return cls._instance
-        
 
     def __init__(self, output:Union[BaseLogHandler,list[BaseLogHandler]],
                  topicGenerationMethode:Optional[str]=None,
@@ -123,6 +122,7 @@ class Logueur():
         # Register Output:
         # ----------------
         self.register_output(output)
+
 
     def register_output(self, output:Union[BaseLogHandler,list[BaseLogHandler]]) -> None:
         """ 

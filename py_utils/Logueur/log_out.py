@@ -83,7 +83,7 @@ class BaseLogHandler(ABC):
         if not isinstance(level,LogLevel):
             raise TypeError(f"The level must be a LogLevel, instead I've received a '{type(level)}'")
         if not isinstance(filter,LogTopicFilter):
-            raise TypeError(f"The topic filter must be a LogTopicFilter, instead I've received a '{type(level)}'")
+            raise TypeError(f"The topic filter must be a LogTopicFilter, instead I've received a '{type(filter)}'")
 
 
         # Initialization:
@@ -347,7 +347,7 @@ class FileLogHandler(BaseLogHandler):
         - 'overwrite'      -> overwrite the file without warning
         - 'overwrite-warn' -> overwrite the file with a warning
         - 'abort'          -> Abort the creation of the handler (default)
-        - 'append'         -> Append next log message to the file
+        - 'append'         -> Append next log message to the file, creating it if it doesn't exist
         - 'new'            -> Append '(n)' to the filename to create a new file
 
         Parameters
@@ -363,7 +363,8 @@ class FileLogHandler(BaseLogHandler):
             using UTC as timezone.
         :type filename: str or None
 
-        :param action: Flag indicating what to do if a file with the same name already exist.
+        :param action: Flag indicating what to do if a file with the same name already exist. Can be
+            `'overwrite'`, `'overwrite-warn'`, `'abort'`, `'append'`, or `'new'`
             Default to `abort`.
         :type action: str
         """
@@ -389,21 +390,24 @@ class FileLogHandler(BaseLogHandler):
         # check filename :
         if action == 'overwrite':
             with open(filename,'w'): pass
-            self._filename = filename
 
         elif action == 'overwrite-warn':
             if os.path.isfile(filename):
                 warnings.warn(f"The file {filename} already exist, it's contents will be erased !",ResourceWarning)
             with open(filename,'w'): pass
-            self._filename = filename
         
         elif action == 'abort':
             if os.path.isfile(filename):
                 raise FileExistsError(f"The log file {filename} already exist !")
             
+        elif action == 'append':
+            pass
+            
         else: # action == 'new'
-            self._filename = self._makeValideFilename(filename)
+            filename = self._makeValideFilename(filename)
             with open(filename,'w'): pass
+        
+        self._filename = filename
     
     def _write(self, msg:LogMessage) -> None:
         """ Append a message to the end of the log file.
@@ -422,7 +426,8 @@ class FileLogHandler(BaseLogHandler):
         # Emit the message:
         # -----------------
         with open(self._filename,'a') as f:
-            f.write(msg)
+            f.write( str(msg) )
+            #os.fsync(f.fileno())
     
     @staticmethod
     def _generateLogFilename() -> str:
@@ -441,6 +446,8 @@ class FileLogHandler(BaseLogHandler):
         Take a filename and check if it's valide. If it's not, the string `'_(n)'` will be appended to 
         the file name, with `n` a integer. This integer will start at 1, and will be incremented by one 
         the necessary number of time for the filename to be unique.
+
+        This methods doesn't create the file!!
 
         Parameters
         ----------
@@ -622,7 +629,7 @@ class RotaryFileLogHandler(BaseLogHandler):
             os.remove( os.path.abspath(file_to_remove) )
 
         # Recursive calls until their is no more than self._maxLog files,
-        # That should never happen, but it's their just in case.
+        # That should never happen, but it's there just in case.
         if len(self.logfiles) > self._maxLog:
             warnings.warn("At one point, log's files weren't correctly cleaned (maxLogUnit is 'file') !!")
             self._clean_num()

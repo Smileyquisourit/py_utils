@@ -7,10 +7,18 @@
 """
 
 import io
+import datetime
 import unittest
+import unittest.mock
+
+import os
+import shutil
+import tempfile
 
 from py_utils.Logueur.log_out import *
 from py_utils.Logueur.log_topic import LogTopic as LogTopic
+
+from tests import mockDatetime
 
 mockVar = False
 class MockBaseLogHandler(BaseLogHandler):
@@ -33,7 +41,7 @@ class test_baseLogHandler(unittest.TestCase):
 
     def test_baseFiltrate(self):
 
-        log = MockBaseLogHandler(LogLevel.INFO, "key1")
+        log = MockBaseLogHandler(LogLevel.INFO, LogTopicFilter("key1"))
 
         msg_good = LogMessage("body",LogLevel.WARNING, LogTopic("key1"))
         msg_bad1 = LogMessage("body",LogLevel.DEBUG, LogTopic("key1"))
@@ -50,7 +58,7 @@ class test_baseLogHandler(unittest.TestCase):
 
         global mockVar
 
-        log = MockBaseLogHandler(LogLevel.INFO, "key1")
+        log = MockBaseLogHandler(LogLevel.INFO, LogTopicFilter("key1"))
 
         msg_good = LogMessage("body",LogLevel.WARNING, LogTopic("key1"))
         msg_bad1 = LogMessage("body",LogLevel.DEBUG, LogTopic("key1"))
@@ -172,7 +180,269 @@ class test_FileLogHandler(unittest.TestCase):
     """ Tests for the LogFileHandler class
     """
 
-class test_RotaryFileLogHandler(unittest.TestCase): #TODO
+    @classmethod
+    def setUpClass(cls):
+        cls._test_dir = tempfile.mkdtemp()
+        return super().setUpClass()
+    
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._test_dir)
+        return super().tearDownClass()
+
+    def tearDown(self):
+        shutil.rmtree(self._test_dir)
+        os.mkdir(self._test_dir,mode=0o700)
+    
+    def _create_file(self,filename):
+
+        path = os.path.join(self._test_dir,filename)
+        with open(path,"w"):
+            pass
+
+        return path
+
+    def test_generateFilename(self):
+        """ Testing FileLogHandler._generateLogFilename """
+        mockDT = mockDatetime(datetime.datetime.now(datetime.UTC))
+        with unittest.mock.patch('datetime.datetime',mockDT) as mock:
+            expected = "log_"+mock.now().isoformat()
+            self.assertEqual(expected,FileLogHandler._generateLogFilename())
+        
+        #
+    def test_makeValdeFileName(self):
+        """ Testing FileLogHandler._makeValideFilename """
+        
+        file1 = self._create_file("log.log")
+        file2 = self._create_file("log_1.log")
+        file3 = self._create_file("log_2.log")
+
+        # Valid file
+        expected = os.path.join(self._test_dir,'logfile')
+        self.assertEqual(expected, FileLogHandler._makeValideFilename(expected))
+
+        # Invalid file, need one iteration
+        file4 = self._create_file('logfile')
+        expected = os.path.join(self._test_dir,'logfile_1')
+        self.assertEqual(expected, FileLogHandler._makeValideFilename(file4))
+
+        # Invalid file, need multiple iteration
+        expected = os.path.join(self._test_dir,'log_3.log')
+        self.assertEqual(expected, FileLogHandler._makeValideFilename(file1))
+
+    def test_write(self):
+        """ Testing FileLogHandler._write """
+
+        filename = self._create_file('logfile')
+        log = FileLogHandler(
+            LogLevel.DEBUG,LogTopicFilter("#"),
+            filename=filename, action="append"
+        )
+        msg = LogMessage("body",LogLevel.INFO,LogTopic('topic'),fmt="{body}")
+
+        log._write(msg)
+
+        expected = "body"
+        with open(filename,'r') as f:
+            tested = f.read()
+        self.assertEqual(expected,tested, f"Should have read '{expected}', but I've read '{tested}'")
+
+    def test_optionOverwrite(self):
+        
+        filename = self._create_file('logfile')
+        with open(filename, 'w') as f:
+            f.write("something")
+            
+        expected = ""
+        log = FileLogHandler(LogLevel.DEBUG,LogTopicFilter("#"),filename=filename, action="overwrite")
+        with open(filename,'r') as f:
+            tested = f.read()
+            self.assertEqual(expected, tested, f"I should have read '{expected}', but I've read '{tested}'")
+
+        #
+    def test_optionVerwriteWarn(self):
+
+        filename = self._create_file('logfile')
+        with open(filename, 'w') as f:
+            f.write("something")
+            
+        expected = ""
+        with self.assertWarns(ResourceWarning) as cm:
+            log = FileLogHandler(LogLevel.DEBUG,LogTopicFilter("#"),filename=filename, action="overwrite-warn")
+        with open(filename,'r') as f:
+            tested = f.read()
+            self.assertEqual(expected, tested, f"I should have read '{expected}', but I've read '{tested}'")
+
+        #
+    def test_optionAbort(self):
+
+        filename = self._create_file('logfile')
+        with open(filename, 'w') as f:
+            f.write("something")
+            
+        with self.assertRaises(FileExistsError):
+            log = FileLogHandler(LogLevel.DEBUG,LogTopicFilter("#"),filename=filename, action="abort")
+        
+        #
+    def test_optionAppend(self):
+        
+        filename = self._create_file('logfile')
+        with open(filename, 'w') as f:
+            f.write("some")
+        msg = LogMessage("thing",LogLevel.INFO,LogTopic('topic'),fmt="{body}")
+            
+        expected = "something"
+        log = FileLogHandler(LogLevel.DEBUG,LogTopicFilter("#"),filename=filename, action="append")
+        log._write(msg)
+        with open(filename,'r') as f:
+            tested = f.read()
+            self.assertEqual(expected, tested, f"I should have read '{expected}', but I've read '{tested}'")
+
+        #
+    def test_optionNew(self):
+        
+        filename = self._create_file('logfile')
+        expected = filename + "_1"
+
+        log = FileLogHandler(LogLevel.DEBUG,LogTopicFilter("#"),filename=filename, action="new")
+        self.assertEqual(expected, log._filename)
+
+class test_RotaryFileLogHandler(unittest.TestCase):
     """ Tests for the RotaryFileLogHandler class
     """
-    log = RotaryFileLogHandler()
+
+    @classmethod
+    def setUpClass(cls):
+        cls._test_dir = tempfile.mkdtemp()
+        return super().setUpClass()
+    
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._test_dir)
+        return super().tearDownClass()
+
+    def tearDown(self):
+        shutil.rmtree(self._test_dir)
+        os.mkdir(self._test_dir,mode=0o700)
+        pass
+
+    @staticmethod
+    def _getFilename(dt:datetime.datetime,base:str,sep:str,ext:str):
+        filename = base
+        filename += dt.date().isoformat()
+        filename += sep
+        filename += dt.timetz().isoformat()
+        filename += ext
+        return filename
+
+        #
+    def _getLog(self, **kwargs):
+        args = {
+            'level'       : LogLevel.INFO,
+            'filter'      : LogTopicFilter("#"),
+            'baseFilename': "logfile_",
+            'directory'   : self._test_dir,
+            'log_ext'     : ".log",
+            'timeSep'     : 'T',
+            'tz'          : datetime.UTC,
+            'maxSizeFile' : 1024,
+            'maxLog'      : 3,
+            'maxLogUnit'  : 'file'
+        }
+        args.update(kwargs)
+        return RotaryFileLogHandler(**args)
+    def _createFile(self,filename):
+        path = os.path.join(self._test_dir,filename)
+        with open(path,'w') as f:
+            pass
+        return os.path.abspath(path)
+
+    # Test logfiles property
+    def test_reconstruct_time(self):
+        # Test for each options (base, datetimeSep,ext) separatly. This should be
+        # enough, with an uncorrect filename for each case.
+
+        dt = datetime.datetime.now(datetime.UTC)
+
+        # Test base
+        good_filename = self._getFilename(dt,'logfile_','T','.log')
+        bad_filename = self._getFilename(dt,'log-','T','.log')
+        log = self._getLog()
+
+        try:
+            tested = log._reconstruct_time_from_filename(good_filename)
+        except:
+            self.fail(
+                f"RotaryFileHandler didn't recognize the correct pattern in '{good_filename}'" + \
+                f" (pattern was '{log._filename_pattern.pattern}')"
+            )
+        self.assertEqual(dt,tested)
+        with self.assertRaises(ValueError):
+            log._reconstruct_time_from_filename(bad_filename)
+
+
+        # Test datetimeSep
+        good_filename = self._getFilename(dt,'logfile_','::','.log')
+        bad_filename = self._getFilename(dt,'logfile_','T','.log')
+        log = self._getLog(timeSep='::')
+
+        try:
+            tested = log._reconstruct_time_from_filename(good_filename)
+        except:
+            self.fail(
+                f"RotaryFileHandler didn't recognize the correct pattern in '{good_filename}'" + \
+                f" (pattern was '{log._filename_pattern.pattern}')"
+            )
+        self.assertEqual(dt,log._reconstruct_time_from_filename(good_filename))
+        with self.assertRaises(ValueError):
+            log._reconstruct_time_from_filename(bad_filename)
+
+        # Test ext
+        good_filename = self._getFilename(dt,'logfile_','T','.log')
+        bad_filename = self._getFilename(dt,'logfile_','T','')
+        log = self._getLog()
+
+        try:
+            tested = log._reconstruct_time_from_filename(good_filename)
+        except:
+            self.fail(
+                f"RotaryFileHandler didn't recognize the correct pattern in '{good_filename}'" + \
+                f" (pattern was '{log._filename_pattern.pattern}')"
+            )
+        self.assertEqual(dt,log._reconstruct_time_from_filename(good_filename))
+        with self.assertRaises(ValueError):
+            log._reconstruct_time_from_filename(bad_filename)
+
+        #
+    def test_zeroLogfiles(self):
+
+        log = self._getLog()
+
+        self.assertEqual(0,len(log))
+        #
+    def test_multipleLogfiles(self):
+
+        # Create 3 datetime for 3 differents files
+        now = datetime.datetime.now(datetime.UTC)
+        dt = [
+            now - datetime.timedelta(weeks=0,days=1,hours=3,minutes=45,seconds=28,milliseconds=5),
+            now - datetime.timedelta(weeks=0,days=4,hours=14,minutes=0,seconds=55,milliseconds=9),
+            now - datetime.timedelta(weeks=1,days=0,hours=23,minutes=59,seconds=59,milliseconds=0)
+        ]
+
+        # Creates 3 files
+        files = [
+            self._createFile(self._getFilename(dt[0],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[1],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[2],'log','T','.log')),
+        ]
+
+        log = self._getLog()
+
+        # Assert than only 2 files are found
+        self.assertEqual(2,len(log))
+
+        # Assert that the files are correctly determined
+        for file in log.logfiles:
+            self.assertIn(file.path,files)
+            self.assertIn(file.creationTime,dt)
