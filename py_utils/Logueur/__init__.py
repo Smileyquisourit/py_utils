@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # Initialisation of Logueur
 # ---------------------------------------------------------
-# ./Logueur/__init__.py
+# py_utils/Logueur/__init__.py
 
 """
     =======
@@ -28,7 +28,7 @@
     LogTopicFilter:
         Filter for log message's topic.
 
-    Their is multiple log's destination (the console, a file, ...). See :mod:`Logueur.log_out`
+    There is multiple log's destination (the console, a file, ...). See :mod:`Logueur.log_out`
     for more information.
 
     Functions

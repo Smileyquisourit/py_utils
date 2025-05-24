@@ -1,4 +1,33 @@
-#raise NotImplementedError("The ConfigHelper module isn't implemented yet ,but it will comme soon ;)")
+# -*- coding: utf-8 -*-
+# ---------------------------------------------------------
+# Initialisation of Logueur
+# ---------------------------------------------------------
+# py_utils/ConfigHelper/__init__.py
+
+"""
+    ============
+    ConfigHelper
+    ============
+
+    This module provides a interface for differents configuration files. The supported
+    format of the configuration file are INI and JSON.
+
+    Objects
+    -------
+
+    ConfigHelper:
+        The main interface to a configuration. It can read differents configuration files
+        of different format.
+
+    ConfigSection:
+        Represent a section of a configuration.
+
+    ConfigVariable:
+        Represent one variable of a configuration, and contain it's name, type and value.
+"""
+
+# Expose main interfaces:
+# -----------------------
 
 from .confighelper import ConfigHelper
 from .config_section import ConfigSection
