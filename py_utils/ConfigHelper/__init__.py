@@ -1,5 +1,9 @@
 #raise NotImplementedError("The ConfigHelper module isn't implemented yet ,but it will comme soon ;)")
 
+from .confighelper import ConfigHelper
+from .config_section import ConfigSection
+from .config_variable import ConfigVariable
+
 
 # TODO list:
 # ----------

@@ -7,9 +7,10 @@
 
 import unittest
 
-from ConfigHelper.config_variable import *
-from ConfigHelper.config_variable import \
-    _extractFromString
+from py_utils.ConfigHelper.config_variable import *
+from py_utils.ConfigHelper.config_variable import \
+    _extractFromString, \
+    _extractFromDict
 
 class test_ConfigVariable(unittest.TestCase):
     """ Tests for the ConfigVariable class. """

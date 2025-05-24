@@ -6,5 +6,5 @@
 
 # Expose public interface:
 # ------------------------
-#from Logueur import Logueur
-#from ConfigHelper import C
+from .Logueur import Logueur
+from .ConfigHelper import ConfigHelper
