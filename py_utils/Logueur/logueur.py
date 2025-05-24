@@ -9,8 +9,14 @@
 Module logueur
 ==============
 
-Implement the Logueur class, used for logging messages
-to various output, and factury function for this class.
+Implement the Logueur class, used for logging messages to various output, and a factury function for 
+this class. This Logueur class is used to centralise logging, and provides a default interface for
+logging message to the console. With this default interface, a module can use the logging functionality 
+of the Logueur class, knowing that the message will be logged to the console if the user doesn't define 
+a log, or to the user logs if there is any.
+
+If a module log a message before the Logueur is initialized by the user, the message will be logged to
+the console (with the default log), and not to the user defined logs !!
 """
 
 # A way of implementing a singleton, not used
@@ -23,6 +29,7 @@ to various output, and factury function for this class.
 #         return cls._instances[cls]
 
 import datetime
+import functools
 from typing import Union, Optional
 
 from .log_level import LogLevel
@@ -41,11 +48,13 @@ class Logueur():
 
     Object for logging messages to various output. 
 
-    The Logger class allows for managing different outputs for log messages,
-    with each output configured differently. This provide a structured
-    logging for debugging and monitoring application behavior. It also 
-    simplifies the sending of messages by handling the creation of the 
-    messages.    
+    The Logger class allows for managing different outputs for log messages, with each output configured differently. 
+    This provide a structured logging for debugging and monitoring application behavior. It also simplifies the sending 
+    of messages by handling the creation of the messages, although you can also define your own LogMessage and log it
+    with the classmethod `log`.
+
+    WARNING::The Logueur class is a Singleton, but doesn't implement well this pattern, so a second
+    call to the Logueur.__init__() (ie Logueur()) will errase the previous instance!!
     """
 
     _default = ConsoleLogHandler(_default_level,_default_filter,supportColor=False,useStderr=True)
@@ -55,12 +64,12 @@ class Logueur():
 
         if not cls._instance:
             cls._instance = object.__new__(cls)
-            cls._instance.__init__(*args,**kwargs)
+            #cls._instance.__init__(*args,**kwargs)
         return cls._instance
 
     def __init__(self, output:Union[BaseLogHandler,list[BaseLogHandler]],
-                 topicGenerationMethode:Optional[str]=None,
-                 messageFormat:Optional[str]=None,
+                 topicGenerationMethode:str='module',
+                 messageFormat:str='[{level}] {topic}\n{body}\n\n',
                  tz:Optional[datetime.timezone]=None) -> None:
         """ 
         ======================
@@ -71,19 +80,24 @@ class Logueur():
 
         Parameters
         ----------
-        :param output BaseLogHandler|list[BaseLogHandler]:
-            The destination of the log's messages. Shall be a class herited
-            of the BaseLogHandler or a list of object herited from BaseLogHandler
-            in case of mulitple destination.
-        :param topicGenerationMethod str|None:
-            A string used to determine how to generate the topic of the message.
-            Can be 'stack' or 'module', see :mod:`Logueur.log_topic`.
-        :param messageFormat str|None:
-            A string to be used to format the message before emitting it to the
-            differents output. The formatting fubnction used is `str.format` called
-            with `level=msg_level` (the level of the log entry), `body=msg_body`
-            (the text of the entry), and `topic=msg_topic` (the topic of the entry).
+        :param output: The destination of the log's messages. Shall be a 
+            class herited of the BaseLogHandler or a list of object herited from BaseLogHandler in case of 
+            mulitple destination.
+        :type output: BaseLogHandler, list[BaseLogHandler]
+
+        :param topicGenerationMethod: A string used to determine how to generate the topic of the 
+            message. Can be 'stack' or 'module', see :mod:`Logueur.log_topic`. Default to `'module'`.
+        :type topicGenerationMethod: str
+
+        :param messageFormat: A string to be used to format the message before emitting it to the differents 
+            output. The formatting fubnction used is `str.format` called with `level=msg_level` (the level of 
+            the log entry), `body=msg_body` (the text of the entry), and `topic=msg_topic` (the topic of the 
+            entry). Default to `"[{level}] {topic}\\n{body}\\n\\n"`.
             Note: the `body` must be present in the format !
+        :type messageFormat: str
+
+        :param tz: The timezone used to compute time when creating a message.
+        :type tz: datetime.timezone, optional
         """
 
         # Type Check:
@@ -91,26 +105,28 @@ class Logueur():
 
         # Output:
         if not isinstance(output,(BaseLogHandler,list)):
-            raise ValueError(f"The output must be BaseLogHandler or a list of BaseLogHandler (or subclass of BaseLogHandler), instead, I've received a '{type(output)}'")
+            raise TypeError(f"The output must be BaseLogHandler or a list of BaseLogHandler (or subclass of BaseLogHandler), instead, I've received a '{type(output)}'")
         if not isinstance(output,list):
             output = [output]
         for i,out in enumerate(output,start=1):
             if not isinstance(out,BaseLogHandler):
-                raise ValueError(f"Output {i} of the differents outputs must be a BaseLogHandler or a subclass of BaseLogHandler, intead I've received a '{type(out)}'")
+                raise TypeError(f"Output {i} of the differents outputs must be a BaseLogHandler or a subclass of BaseLogHandler, intead I've received a '{type(out)}'")
         
         # Topic generation method:
-        if topicGenerationMethode and not isinstance(topicGenerationMethode,str):
-            raise ValueError(f"The topic generation method must be a str, instead I've received a '{type(topicGenerationMethode)}'")
-        if topicGenerationMethode and not topicGenerationMethode in LogTopic._fromMethode:
+        if not isinstance(topicGenerationMethode,str):
+            raise TypeError(f"The topic generation method must be a str, instead I've received a '{type(topicGenerationMethode)}'")
+        if not topicGenerationMethode in LogTopic._fromMethode:
             raise ValueError(f"The topic generation method must be one of the following: {LogTopic._fromMethode}, instead I've received '{topicGenerationMethode}'")
         
         # Log message format:
         if messageFormat and not isinstance(messageFormat,str):
-            raise ValueError(f"The message format must be a str, instead I've received a '{type(messageFormat)}'")
+            raise TypeError(f"The message format must be a str, instead I've received a '{type(messageFormat)}'")
         if messageFormat and not r'{body}' in messageFormat:
             raise ValueError("The msg_fmt must at least contains {body} !")
+        
+        # Timezone
         if tz and not isinstance(tz,datetime.timezone):
-            raise TypeError(f"The timezone info (tz) must be a datetime.timezone, instead I've received a '{type(tz)}'")
+            raise TypeError(f"The timezone info (tz) must be a datetime.timezone or None, instead I've received a '{type(tz)}'")
 
         # Initialization:
         # ---------------
@@ -134,10 +150,10 @@ class Logueur():
         
         Parameters
         ----------
-        :param output BaseLogHandler|list[BaseLogHandler]:
-            The destination of the log's messages. Shall be a class herited
-            of the BaseLogHandler or a list of object herited from BaseLogHandler
-            in case of mulitple destination.
+        :param output: The destination of the log's messages. Shall be a class herited
+            of the BaseLogHandler or a list of object herited from BaseLogHandler in
+            case of mulitple destination.
+        :type output: BaseLogHandler, list[BaseLogHandler]
         """
         # Type Check:
         # -----------
@@ -166,8 +182,8 @@ class Logueur():
         
         Parameters
         ----------
-        :param msg LogMessage:
-            The message to log
+        :param msg: The message to log.
+        :type msg: LogMessage
         """
         
         # Type Check:
@@ -215,11 +231,13 @@ class Logueur():
             raise ValueError(f"The body of the message must be a str, instead I've received a '{type(body)}'")
         if topic and not isinstance(topic,str):
             raise ValueError(f"The topic of the message must be a str, instead I've received a '{type(topic)}'")
+        elif topic:
+            topic = LogTopic(topic)
         else:
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
-        else:
+        elif not format:
             format = self._messageFormat
         
         # Create and log message:
@@ -258,11 +276,13 @@ class Logueur():
             raise ValueError(f"The body of the message must be a str, instead I've received a '{type(body)}'")
         if topic and not isinstance(topic,str):
             raise ValueError(f"The topic of the message must be a str, instead I've received a '{type(topic)}'")
+        elif topic:
+            topic = LogTopic(topic)
         else:
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
-        else:
+        elif not format:
             format = self._messageFormat
         
         # Create and log message:
@@ -301,11 +321,13 @@ class Logueur():
             raise ValueError(f"The body of the message must be a str, instead I've received a '{type(body)}'")
         if topic and not isinstance(topic,str):
             raise ValueError(f"The topic of the message must be a str, instead I've received a '{type(topic)}'")
+        elif topic:
+            topic = LogTopic(topic)
         else:
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
-        else:
+        elif not format:
             format = self._messageFormat
         
         # Create and log message:
@@ -344,11 +366,13 @@ class Logueur():
             raise ValueError(f"The body of the message must be a str, instead I've received a '{type(body)}'")
         if topic and not isinstance(topic,str):
             raise ValueError(f"The topic of the message must be a str, instead I've received a '{type(topic)}'")
+        elif topic:
+            topic = LogTopic(topic)
         else:
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
-        else:
+        elif not format:
             format = self._messageFormat
         
         # Create and log message:
@@ -387,11 +411,13 @@ class Logueur():
             raise ValueError(f"The body of the message must be a str, instead I've received a '{type(body)}'")
         if topic and not isinstance(topic,str):
             raise ValueError(f"The topic of the message must be a str, instead I've received a '{type(topic)}'")
+        elif topic:
+            topic = LogTopic(topic)
         else:
             topic = LogTopic.topicFactory(self._topicGenerationMethode, 3)
         if format and not isinstance(format,str):
             raise ValueError(f"The format of the message must be a str, instead I've received a '{type(format)}'")
-        else:
+        elif not format:
             format = self._messageFormat
         
         # Create and log message:
@@ -400,13 +426,70 @@ class Logueur():
         self.log(msg)
 
     @classmethod
-    def get_defaultFunc(cls,topic:str,fmt:Optional[str]=None,tz:Optional[datetime.timezone]=None):
+    def get_loggingFunc(cls,topicGenMethode:str='module',
+                        fmt:str='[{level}] {topic} :: {body}\n',
+                        tz:Optional[datetime.timezone]=None) -> callable:
+        """
+        Return a function to log message without having to initialise a handler before.
 
-        # Type check:
-        # -----------
-        #TODO
-        
-        def log(level:Union[str,int],body:str):
+        This returned function mimic the behavior of the `debug`, `info`, `warning`, `error` 
+        and `fatal` methods of the Logueur class, but take the level as an additional argument.
+
+        The topic generation methode ('topicGenMethode') argument enable the optionality of the topic
+        argument of the returned function. If the topic provided to the returned function is `None`, 
+        it will be generated by the methode specified by 'topicGenMethode'.
+
+        Parameters
+        ----------
+        :param topicGenMethode: The methode to generate the default topic of the logged messages.
+            Default to 'module'.
+        :type topicGenMethode: str
+
+        :param fmt: The format to use when writting the message. It must contain at least `{body}`.
+            See :class:`Logueur.log_message.LogMessage`. Default to '[{level}] {topic} :: {body}\\n'
+        :type fmt: str
+
+        :param tz: The timezone information to use when computing the datetime of the creation
+            of the message.
+        :type tz: datetime.timezone, optionnal
+
+        Return
+        ------
+        :return: A function to log messages.
+        :rtype: callable
+        """
+
+        # Type/Value check:
+        # -----------------
+        if not isinstance(topicGenMethode,str):
+            raise TypeError(f"The topic generation methode (topicGenMethode) must be a str, instead I've received {type(topicGenMethode)}")
+        if not topicGenMethode in LogTopic._fromMethode:
+            raise ValueError(f"The topic generation method (topicGenMethode) must be one of the following: {LogTopic._fromMethode}, instead I've received '{topicGenMethode}'")
+        if not isinstance(fmt,str):
+            raise TypeError(f"The message format must be a str, instead I've received a '{type(messageFormat)}'")
+        if not r'{body}' in fmt:
+            raise ValueError("The msg_fmt must at least contains {body} !")
+        if tz and not isinstance(tz,datetime.timezone):
+            raise TypeError(f"The timezone info (tz) must be a datetime.timezone or None, instead I've received a '{type(tz)}'")
+
+        # Logging function:
+        # -----------------
+        def log(level:Union[str,int,LogLevel],body:str, 
+                topic:Optional[Union[str,LogTopic]]=None):
+            """
+            Log a message to the logs, either the default one or the one configured by the user.
+
+            Parameters
+            ----------
+            :param level: The level of the message.
+            :type level: LogLevel, str, int
+
+            :param body: The body of the message.
+            :type body: str
+
+            :param topic: The topic of the message, if `None`, the topic generation method specified
+                in the `get_loggingFunction` will be used to generate it.
+            """
 
             msg = LogMessage(
                 body=body,
@@ -418,6 +501,7 @@ class Logueur():
 
             cls.log(msg)
 
+        #functools.update_wrapper(Logueur.get_loggingFunc, log)
         return log
 
 
@@ -432,21 +516,25 @@ def ConsoleLogueurFactory(level:Union[str,LogLevel],filter:Union[str,LogTopicFil
     
     Parameters
     ----------
-    :param level LogLevel:
-        The level used for filtrate log messages.
-    :param filter LogTopicFilter:
-        The topic filtrer used for filtrate log messages.
-    :param supportColor bool:
-        If the console support color, and if colors should be used.
-        Default to `True`
-    :param useStderr bool:
-        True to use stderr for warning, error and fatal message.
-        Default to `True`
+    :param level: The level used for filtrate log messages.
+    :type level: LogLevel, str
+
+    :param filter:
+        The topic filtrer used for filtrate log messages. Default to `'#'` (all topics).
+    :type filter: LogTopicFilter, str
+
+    :param supportColor: If the console support color, and if colors should be used.
+        Default to `True`.
+    :type supportColor: bool
+
+    :param useStderr: `True` to use stderr for warning, error and fatal message.
+        Default to `True`.
+    :type useStderr: bool
 
     Return
     ------
-    :return out Logueur:
-        The constructed Logueur instance.
+    :return: The constructed Logueur instance.
+    :rtype: Logueur
     """
 
     # Type Check:

@@ -491,9 +491,16 @@ class RotaryFileLogHandler(BaseLogHandler):
             A tuple of LogDirEntry obtained with a DirEntry obtained by `os.scandir`, and
             the creation time obtained from it's name.
         """
+
+        # Get dirEntry and datetime
         _logFiles =  tuple(entry for entry in os.scandir(self._directory) if self._filename_pattern.fullmatch(entry.name))
         _creationTimes = tuple(self._reconstruct_time_from_filename(file.name) for file in _logFiles)
-        return tuple(LogDirEntry(file,createdTime) for file, createdTime in zip(_logFiles,_creationTimes))
+
+        # Sort datetime indices
+        _sorted_idx = [i for i, _ in sorted(enumerate(_creationTimes), key=lambda x: x[1])]
+        return tuple(
+            LogDirEntry(_logFiles[i],_creationTimes[i]) for i in _sorted_idx
+        )
 
 
     def __init__(self, level: LogLevel, filter: LogTopicFilter, baseFilename:str="log_", directory:str='.',
@@ -512,7 +519,11 @@ class RotaryFileLogHandler(BaseLogHandler):
         - if `maxLogUnit='month'` : only files no older than `maxLog` months are conserved.
 
         This file clean-up only occurs when a new logfile is requested (du to the size limit), so if you allow a
-        large size for a log file, there is no garanty that file older than what you requested are deleted.
+        large size for a log file, there is no garanty that file older than what you requested are deleted at any time.
+
+        # TODO
+        A new logfile is only requested when their is the need to write a message, so if your application never need to
+        write a message, there will be no logfiles ! This behavior will maybe be customizable in the future.
 
         Parameters
         ----------
@@ -579,9 +590,7 @@ class RotaryFileLogHandler(BaseLogHandler):
             raise ValueError(f"Unsupported option {maxLogUnit}, it should be in {self._SUPPORTED_LOG_UNIT}")
         
         # Check directory
-        absPath_dir = os.path.abspath(directory)
-        if not os.path.isdir(directory):
-            raise FileNotFoundError(f"The directory {absPath_dir} wasn't found!")
+        absPath_dir = self._check_dir(directory)
         
         # Check maxLog:
         if maxLog <= 0:
@@ -592,13 +601,14 @@ class RotaryFileLogHandler(BaseLogHandler):
         self._directory = absPath_dir
         self._filename_fmt = self._LOG_FILE_FMT.format(base=baseFilename,timeSep=timeSep,ext=log_ext)
         self._filename_pattern = re.compile(self._ISO_FMT_STR_PATTERN.format(base=baseFilename,timeSep=timeSep,ext=log_ext))
-        self._current_file = None
 
         self._tz = tz
 
         self._maxSize = maxSizeFile
         self._maxLog = maxLog
         self._maxLogUnit = maxLogUnit
+
+        self._current_file = self._init_logfiles()
 
 
     # Dunder methods:
@@ -611,7 +621,7 @@ class RotaryFileLogHandler(BaseLogHandler):
     # Methods for creating/cleaning filelog:
     # --------------------------------------
 
-    def _clean_num(self):
+    def _clean_num(self) -> None:
         """ Check all known logfile from number and remove the oldest one if their is too many. """
         _logFiles = self.logfiles
         if len(_logFiles) > self._maxLog:
@@ -634,7 +644,7 @@ class RotaryFileLogHandler(BaseLogHandler):
             warnings.warn("At one point, log's files weren't correctly cleaned (maxLogUnit is 'file') !!")
             self._clean_num()
 
-    def _clean_date(self):
+    def _clean_date(self) -> None:
         """ Check all known logfile from datetime. """
 
         # Compute max_timedelta
@@ -652,9 +662,17 @@ class RotaryFileLogHandler(BaseLogHandler):
         for file in self.logfiles:
             dt = now - file.creationTime
             if dt > max_timedelta:
-                os.remove( os.path.abspath(file.name) )
+                os.remove( os.path.abspath(file.path) )
             if dt < datetime.timedelta(0):
                 raise Exception(f"One logfile is in the future!! The logfile name: {file.name}")
+
+    def _clean_logfiles(self) -> None:
+        """ Call the right method for cleaning the logfiles. """
+
+        if self._maxLogUnit == "file":
+            self._clean_num()
+        else:
+            self._clean_date()
 
     def _request_new_logfile(self) -> str:
         """ Create a new log file and then call right method for cleaning logfile. 
@@ -677,16 +695,23 @@ class RotaryFileLogHandler(BaseLogHandler):
             with open(new_file,'x') as f:
                 os.fsync(f.fileno())
         except Exception as e:
-            raise Exception(f"Error while requesting a new logfile: {e}")
-        
-
-        # Clean logfiles
-        if self._maxLogUnit == "file":
-            self._clean_num()
-        else:
-            self._clean_date()
+            raise Exception(f"Error while requesting a new logfile: {e}")        
 
         return new_file
+    
+    def _init_logfiles(self):
+        """ Intialise the logfiles system. """
+
+        # Clean logfiles
+        self._clean_logfiles()
+        _logfiles = self.logfiles
+        
+        # Case where there is no logfiles
+        if len(_logfiles) == 0:
+            return None
+        
+        return _logfiles[-1].path
+        
 
 
     # Private methods:
@@ -723,12 +748,47 @@ class RotaryFileLogHandler(BaseLogHandler):
         else:
             raise ValueError(f"The format of filename '{filename}' is invalid!")
 
+    def _check_dir(self,dirname:str) -> str:
+        """ Check if the directory exist, creating if necessary.
+
+        This method check if the parent directory exist (will raise an error if not),
+        then check if the directory exist and create it if necessary.
+
+        Parameters
+        ----------
+        :param dir_path: The name of the directory wanted by the user.
+        :type dir_path: str
+
+        Return
+        ------
+        :return: the full path to the directory wanted by the user.
+        :rtype: str
+
+        Raises
+        ------
+        :raise FileNotFoundError: when the parent directory isn't found.
+        """
+
+        # Get absolute path
+        abs_path = os.path.abspath(dirname)
+        
+        # Check parent directory
+        parent = os.path.dirname(abs_path)
+        if not os.path.isdir(parent):
+            raise FileNotFoundError(f"The parent directory '{parent}' of the requested directory for the logfiles wasn't found !")
+        
+        # Check requested directory:
+        if not os.path.isdir(abs_path):
+            os.mkdir(abs_path)
+        
+        return abs_path
+
     def _write(self, msg:LogMessage) -> None:
         """ Write a message to the current logfile.
 
-        If their no current_file (ie for the first message to be logged) or if it's
-        size is greater than the max authorized, create a new file and clean-up logfiles
-        according to user will, then write the message.
+        If their no current_file (ie for the first message to be logged when there is no exisiting
+        logfiles) or if it's size is greater than the max authorized, create a new file and clean-up 
+        logfiles according to user will, then write the message.
 
         Parameter
         ---------
@@ -737,6 +797,7 @@ class RotaryFileLogHandler(BaseLogHandler):
         """
 
         if not self._current_file or os.path.getsize( self._current_file ) > self._maxSize:
+            self._clean_logfiles()
             self._current_file = self._request_new_logfile()
 
         with open(self._current_file,'a') as f:

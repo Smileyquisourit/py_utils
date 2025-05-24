@@ -357,6 +357,34 @@ class test_RotaryFileLogHandler(unittest.TestCase):
             pass
         return os.path.abspath(path)
 
+    # Test init dir
+    def test_existingDir(self):
+        try:
+            log = self._getLog()
+        except FileNotFoundError:
+            self.fail(f"RotaryFileHandler didn't find the exisitng directory!")
+        
+        #
+    def test_newDir(self):
+        # create the new dir in self._test_dir to be sure it will be removed
+        # after.
+        new_dir = os.path.join(self._test_dir, "new_log_dir") 
+        try:
+            log = self._getLog(directory=new_dir)
+        except FileNotFoundError:
+            self.fail(f"RotaryFileHandler didn't find the existing parent drectory!")
+        
+        if not os.path.isdir(new_dir):
+            self.fail(f"RotaryFileHanlder didn't create the log's directory!")
+        
+        #
+    def test_noParentDir(self):
+        # create the new dir in self._test_dir to be sure it will be removed
+        # after.
+        new_dir = os.path.join(self._test_dir, "new_parent_dir", "new_log_dir") 
+        with self.assertRaises(FileNotFoundError):
+            log = self._getLog(directory=new_dir)
+
     # Test logfiles property
     def test_reconstruct_time(self):
         # Test for each options (base, datetimeSep,ext) separatly. This should be
@@ -446,3 +474,97 @@ class test_RotaryFileLogHandler(unittest.TestCase):
         for file in log.logfiles:
             self.assertIn(file.path,files)
             self.assertIn(file.creationTime,dt)
+
+        # Assert that logfiles are sorted
+        for ii in range(1,len(log.logfiles)):
+            self.assertTrue( log.logfiles[ii].creationTime >= log.logfiles[ii-1].creationTime )
+
+    # Test logfiles cleanup
+    def test_cleanup_num(self):
+        
+        # Create 3 datetime for 3 differents files
+        now = datetime.datetime.now(datetime.UTC)
+        dt = [
+            now - datetime.timedelta(weeks=0,days=1,hours=3,minutes=45,seconds=28,milliseconds=5),
+            now - datetime.timedelta(weeks=0,days=4,hours=14,minutes=0,seconds=55,milliseconds=9),
+            now - datetime.timedelta(weeks=1,days=0,hours=23,minutes=59,seconds=59,milliseconds=0)
+        ]
+
+        # Creates 3 files
+        files = [
+            self._createFile(self._getFilename(dt[0],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[1],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[2],'logfile_','T','.log')),
+        ]
+
+        log = self._getLog(maxLog=2)
+        self.assertEqual(len(log),2)
+    
+        #
+    def test_cleanup_date(self):
+
+        # Create 3 datetime for 3 differents files
+        now = datetime.datetime.now(datetime.UTC)
+        dt = [
+            now - datetime.timedelta(weeks=0,days=1,hours=3,minutes=45,seconds=28,milliseconds=5),
+            now - datetime.timedelta(weeks=0,days=4,hours=14,minutes=0,seconds=55,milliseconds=9),
+            now - datetime.timedelta(weeks=1,days=0,hours=23,minutes=59,seconds=59,milliseconds=0)
+        ]
+
+        # Creates 3 files
+        files = [
+            self._createFile(self._getFilename(dt[0],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[1],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[2],'logfile_','T','.log')),
+        ]
+
+        log = self._getLog(maxLog=2,maxLogUnit='day')
+        self.assertEqual(len(log),1)
+        self.assertEqual(dt[0], log.logfiles[0].creationTime)
+
+    # Test initialisation of logfiles
+    def test_init_zero_logfiles(self):
+        # Test avec 0 log files. This is more the sketch of the different
+        # tests that shoud be writtent when there is a customisation of the
+        # behavior of the _init_logfiles function by the user.
+        log = self._getLog()
+        self.assertEqual(0,len(log))
+
+
+        # Create the file
+        now = datetime.datetime.now(datetime.UTC)
+        dt = now - datetime.timedelta(weeks=1,days=0,hours=23,minutes=59,seconds=59,milliseconds=0)
+        self._createFile(self._getFilename(dt,'logfile_','T','.log'))
+
+        log = self._getLog(maxLog=1,maxLogUnit='week')
+        self.assertEqual(0,len(log))
+
+        #
+    def test_init_multiple_logfiles(self):
+        # Test avec multiple log files, with something writen
+        # in the last ?
+
+        # Create 3 datetime for 3 differents files
+        now = datetime.datetime.now(datetime.UTC)
+        dt = [
+            now - datetime.timedelta(weeks=0,days=1,hours=3,minutes=45,seconds=28,milliseconds=5),
+            now - datetime.timedelta(weeks=0,days=4,hours=14,minutes=0,seconds=55,milliseconds=9),
+            now - datetime.timedelta(weeks=1,days=0,hours=23,minutes=59,seconds=59,milliseconds=0)
+        ]
+
+        # Creates 3 files
+        files = [
+            self._createFile(self._getFilename(dt[0],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[1],'logfile_','T','.log')),
+            self._createFile(self._getFilename(dt[2],'logfile_','T','.log')),
+        ]
+
+        # Write something to the newest file
+        with open(files[0],"w") as f:
+            f.write("some")
+
+        log = self._getLog(maxLog=2,maxLogUnit='file')
+        log._write(LogMessage("thing",LogLevel.DEBUG,LogTopic("topic"),"{body}"))
+
+        with open(files[0],'r') as f:
+            self.assertEqual('something',f.read())
