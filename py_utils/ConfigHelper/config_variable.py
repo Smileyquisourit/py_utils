@@ -4,8 +4,6 @@
 # ---------------------------------------------------------
 # ./ConfigHelper/config_param.py
 
-import re
-import functools
 
 """
 ======================
@@ -25,10 +23,14 @@ Where :
 - <VariableValue> is a string representing the variable, and will be constructed with `VariableType(VariableValue)`
 
 The following type are currently supported:
-- str
-- int
-- float
+- `str`
+- `int`
+- `float`
+- `bool`
 """
+
+import re
+import functools
 
 # Conversion functionality:
 # -------------------------
@@ -90,14 +92,15 @@ class ConfigVariable(object):
     """
     Implementation of a configuration variable.
  
-    This class represent one variable configuration, and supports type validation and automatic value conversion 
-    on assignment. The verification logic is done by properties.
+    This class represent one variable of a configuration, and supports type validation and automatic value conversion 
+    on assignment. The verification and conversion logic is done by properties.
 
     Once the type was set a first time (during initialisation of the instance), it can't be changed !!
     """
 
     @property
     def value(self) -> any:
+        """ The value of the variable. """
         return self._value
      
     @value.setter
@@ -107,6 +110,7 @@ class ConfigVariable(object):
 
     @property
     def type(self) -> any:
+        """ The type of the variable. """
         return self._type
     
     @type.setter
@@ -114,19 +118,29 @@ class ConfigVariable(object):
         raise AttributeError(f"Impossible to change type to {new_type} after initialisation !")
 
     
- 
+    # Dunder methods
+    # --------------
+
     def __init__(self, VariableName:str, VariableType:callable, value:any):
         """
-        Concrete implementation of a configuration variable descriptor.
+        Concrete implementation of a configuration variable. The conversion of the value is done in the 
+        constructor, and will raise an error if it isn't valid.
  
         Parameters
         ----------
-        :param VariableName str: 
-            Name of the configuration variable.
-        :param VariableType callable: 
-            A Python type (e.g. int, float, str) used for validation.
-        :param value any: 
-            The initial value to assign, which will be validated and converted.
+        :param VariableName: Name of the configuration variable.
+        :type VariableName: str
+
+        :param VariableType: A Python type (e.g. int, float, str) used for validation.
+        :type VariableType: type
+
+        :param value: The initial value to assign, which will be validated and converted.
+        :type value: any
+
+        Raises
+        ------
+        :raise ValueError: If the type is not supported.
+        :raise TypeError: If the value cannot be converted to the wanted type.
         """
  
         self._name = VariableName
@@ -139,23 +153,27 @@ class ConfigVariable(object):
     def __str__(self) -> str:
         return self.__repr__()
  
+
+    # Private methods
+    # ---------------
+
     def _validate_value(self,new_value:any) -> any:
         """
         Validates and converts the value using the variable's type.
  
         Parameters
         ----------
-        :param value any:
-            The new value to validate
+        :param value: The new value to validate
+        :type value: any
  
         Return
         ------
-        :return any:
-            The converted value if it's valid.
+        :return: The converted value if it's valid.
+        :rtype: any
  
         Raises
         ------
-            TypeError: If the value cannot be converted to the target type.
+        :raise TypeError: If the value cannot be converted to the target type.
         """
         try:
             correct_value = _CONVERSION_FUNC[self._type](new_value,self._name,self._type)
@@ -166,24 +184,24 @@ class ConfigVariable(object):
             raise KeyError(err_msg)
          
         return correct_value
-    
+
     def _validate_type(self,new_type:any) -> callable:
         """
         Validate the given type, and if it's a string return the corresponding type.
 
         Parameters
         ----------
-        :param new_type any:
-            The new type to validate.
+        :param new_type: The new type to validate.
+        :type new_type: type
         
         Return
         ------
-        :return callable:
-            The corresponding type if it's valid.
+        :return: The corresponding type if it's valid.
+        :rtype: type
 
         Raises
         ------
-            ValueError: If the type is not supported.
+        :raise ValueError: If the type is not supported.
         """
 
         if isinstance(new_type,str):
@@ -194,7 +212,11 @@ class ConfigVariable(object):
         if not new_type in _SUPPORTED_TYPE.values():
             raise ValueError(f"The type '{type(new_type)}' isn't supported.")
         return new_type
- 
+
+
+    # Static methods
+    # --------------
+
     @staticmethod
     def constructFromString(line:str) -> 'ConfigVariable':
         """
@@ -202,17 +224,17 @@ class ConfigVariable(object):
  
         Parameters
         ----------
-        :param line str: 
-            The configuration string to parse (e.g., 'port:int=8080').
+        :param line: The configuration string to parse (e.g., 'port:int=8080').
+        :type line: str
  
         Return
         ------
-        :return ConfigVariable: 
-            An instance representing the parsed configuration.
+        :return: An instance representing the parsed configuration.
+        :rtype: ConfigVariable
  
         Raises
         ------
-            ValueError: If parsing fails due to incorrect syntax or unsupported type.
+        :raise ValueError: If parsing fails due to incorrect syntax or unsupported type.
         """
  
         # Extract components:
@@ -228,10 +250,31 @@ class ConfigVariable(object):
             VariableType = components["type"],
             value = components["value"]
             )
-    
+
     @staticmethod
-    def constructFromDict(var_dict:dict) -> 'ConfigVariable':
-        """ Create a VonfigVariable from a dictionary """
+    def constructFromDict(var_dict:dict[str:str]) -> 'ConfigVariable':
+        """ Create a ConfigVariable from a dictionary.
+
+        The dict should contain values as string, and the following keys:
+        - `'name'` -> the name of the variable
+        - `'type'` -> the type of the variable
+        - `'value'` -> the value of the variable
+        
+        Parameter
+        ---------
+        :param var_dict: The dict in wich to extract the name, type, and value of the 
+            wanted variable.
+        :type var_dict: dict[str:str]
+
+        Return
+        ------
+        :return: An instance representing the parsed configuration.
+        :rtype: ConfigVariable
+ 
+        Raises
+        ------
+        :raise ValueError: If parsing fails due to incorrect syntax or unsupported type.
+        """
 
         # Extract components:
         components, err_code, err_msg = _extractFromDict(var_dict)
@@ -249,6 +292,17 @@ class ConfigVariable(object):
 
     @staticmethod
     def register(varType:type):
+        """ Register a new type with it's corresponding conversion function.
+
+        The new type should be a class, and it will be register under it's name, obtained
+        with `varType.__name__`, while the decorated function will be registered under 
+        `varType`
+
+        Parameter
+        ---------
+        :param varType: The new type to register.
+        :type varType: type
+        """
 
         def decorator(func):
 
@@ -270,12 +324,8 @@ class ConfigVariable(object):
 
 
 
-
-
-
 def _extractFromString(line:str) -> tuple[dict[str:any],str]:
-    """
-    Internal helper to extract variable name, type, and value from a configuration line.
+    """ Internal helper to extract variable name, type, and value from a configuration line.
 
     The expected format is: '<name>[:<type>]=<value>'
 
@@ -286,7 +336,7 @@ def _extractFromString(line:str) -> tuple[dict[str:any],str]:
 
     Return
     ------
-    :return tuple:
+    :return: The following tupple
     - components (dict): Contains 'name', 'type', and 'value' (some may be None on failure).
     - error_code (str): "OK" on success, or a specific error code on failure.
     - error_message (str): Detailed message suitable for user feedback.
@@ -333,7 +383,20 @@ def _extractFromString(line:str) -> tuple[dict[str:any],str]:
     return (components,"OK","")
 
 def _extractFromDict(_dict:dict) -> tuple[dict[str:any],str]:
+    """ Internal helper to extract variable name, type, and value from a dict.
 
+    Parameter
+    ---------
+    :param _dict: The dict to parse.
+    :type _dict: dict
+
+    Return
+    ------
+    :return: The following tupple
+    - components (dict): Contains 'name', 'type', and 'value' (some may be None on failure).
+    - error_code (str): "OK" on success, or a specific error code on failure.
+    - error_message (str): Detailed message suitable for user feedback.
+    """
     # Initialisation
     components = {
         "name": None,

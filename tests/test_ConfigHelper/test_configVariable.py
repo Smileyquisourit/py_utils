@@ -10,86 +10,49 @@ import unittest
 from py_utils.ConfigHelper.config_variable import *
 from py_utils.ConfigHelper.config_variable import \
     _extractFromString, \
-    _extractFromDict
+    _extractFromDict, \
+    _SUPPORTED_TYPE, _CONVERSION_FUNC
+
+class new_type():
+    pass
 
 class test_ConfigVariable(unittest.TestCase):
     """ Tests for the ConfigVariable class. """
-    def _getConf(self):
-        class ConfigMockup():
-            varSTR = ConfigVariable.constructFromString('varSTR:str = 2.5')
-            varINT = ConfigVariable.constructFromString('varINT:int = 5')
-            varFLOAT = ConfigVariable.constructFromString('varFLOAT:float = 2.5')
-        return ConfigMockup()
-    
-    def test_initial_value(self):
+    def test_valid_initialization(self):
+        var = ConfigVariable("test_var", int, "123")
+        self.assertEqual(var.value, 123)
+        self.assertEqual(var.type, int)
 
-        conf = self._getConf()
+    def test_type_immutable(self):
+        var = ConfigVariable("test_var", int, 10)
+        with self.assertRaises(AttributeError):
+            var.type = str
 
-        self.assertEqual(conf.varSTR,"2.5","Initial value incorrect for class str.")
-        self.assertEqual(conf.varINT,5,"Initial value incorrect for class int.")
-        self.assertEqual(conf.varFLOAT,2.5,"Initial value incorrect for class float.")
-    def test_initial_type(self):
+    def test_invalid_type_string(self):
+        with self.assertRaises(ValueError):
+            ConfigVariable("test_var", "unknown", 10)
+
+    def test_invalid_type_object(self):
+        with self.assertRaises(ValueError):
+            ConfigVariable("test_var", list, [])
+
+    def test_value_setter_converts(self):
+        var = ConfigVariable("v", int, "42")
+        var.value = "100"
+        self.assertEqual(var.value, 100)
+
+    def test_register_decorator(self):
         
-        conf = self._getConf()
+        @ConfigVariable.register(new_type)
+        def to_bool(val):
+            return str(val).lower() in ["1", "true", "yes"]
 
-        self.assertIsInstance(conf.varSTR,str,"Initial type incorrect for class str.")
-        self.assertIsInstance(conf.varINT,int,"Initial type incorrect for class int.")
-        self.assertIsInstance(conf.varFLOAT,float,"Initial type incorrect for class float.")
-    def test_bad_newValue(self):
+        self.assertIn("new_type", _SUPPORTED_TYPE.keys())
+        self.assertIn(to_bool, _CONVERSION_FUNC.values())
+        self.assertTrue(_CONVERSION_FUNC[new_type]("true", "flag", bool))
 
-        conf = self._getConf()
 
-        with self.assertRaises(TypeError):
-            conf.varINT = 'test'
-            conf.varFLOAT = 'test'
-    def test_good_newValue_type(self):
-        
-        conf = self._getConf()
-
-        # Without conversion:
-        conf.varSTR = "test"
-        conf.varINT = 2
-        conf.varFLOAT = 0.5
-
-        self.assertIsInstance(conf.varSTR,str,"New value type without conversion incorrect for class str.")
-        self.assertIsInstance(conf.varINT,int,"New value type without conversion incorrect for class int.")
-        self.assertIsInstance(conf.varFLOAT,float,"New value type without conversion incorrect for class float.")
-
-        # With conversion:
-        conf.varINT = "5"
-        conf.varFLOAT = "2.5"
-
-        self.assertIsInstance(conf.varINT,int,"New value type with conversion incorrect for class int.")
-        self.assertIsInstance(conf.varFLOAT,float,"New value type with conversion incorrect for class float.")
-    def test_good_newValue_value(self):
-
-        conf = self._getConf()
-
-        # Without conversion:
-        conf.varSTR = "test"
-        conf.varINT = 2
-        conf.varFLOAT = 0.5
-
-        self.assertEqual(conf.varSTR,"test","New value value without conversion incorrect for class str.")
-        self.assertEqual(conf.varINT,2,"New value value without conversion incorrect for class int.")
-        self.assertEqual(conf.varFLOAT,0.5,"New value value without conversion incorrect for class float.")
-
-        # With conversion:
-        conf.varINT = "5"
-        conf.varFLOAT = "2.5"
-
-        self.assertEqual(conf.varINT,5,"New value value with conversion incorrect for class int.")
-        self.assertEqual(conf.varFLOAT,2.5,"New value value with conversion incorrect for class float.")
-
-class test_extraction(unittest.TestCase):
-    """ Tests for the differents extraction functions.
-
-    This TestCase test the following extraction function:
-    - _extractFromString
-
-    The ability of each function to extract correctly all the required 
-    informations are tested.
-    """
+class test_STR_extraction(unittest.TestCase):
 
     # _extractFromString:
     # -------------------
@@ -133,3 +96,49 @@ class test_extraction(unittest.TestCase):
             rslt = _extractFromString(line)
             self.assertEqual(err_code,rslt[1])
 
+
+class test_DICT_extraction(unittest.TestCase):
+
+    def test_valid_input(self):
+        data = {"name": "age", "type": "int", "value": 30}
+        expected = (
+            {"name": "age", "type": int, "value": 30},
+            "OK",
+            ""
+        )
+        self.assertEqual(_extractFromDict(data), expected)
+
+    def test_missing_name(self):
+        data = {"type": "int", "value": 42}
+        result = _extractFromDict(data)
+        self.assertEqual(result[1], "NO_NAME_FOUND")
+        self.assertEqual(result[2], "No name found in dict!")
+
+    def test_unsupported_type(self):
+        data = {"name": "temperature", "type": "complex", "value": 42}
+        result = _extractFromDict(data)
+        self.assertEqual(result[1], "UNSUPORTED_TYPE")
+        self.assertIn("Unsuported type complex", result[2])
+
+    def test_non_str_type(self):
+        class Custom:
+            pass
+        data = {"name": "field", "type": Custom, "value": "x"}
+        result = _extractFromDict(data)
+        self.assertEqual(result[1], "UNSUPORTED_TYPE")
+        self.assertIn("Unsuported type Custom", result[2])
+
+    def test_missing_value(self):
+        data = {"name": "username", "type": "str"}
+        result = _extractFromDict(data)
+        self.assertEqual(result[1], "NO_VALUE_FOUND")
+        self.assertEqual(result[2], "No value found in dict!")
+
+    def test_default_type(self):
+        data = {"name": "username", "value": "admin"}
+        expected = (
+            {"name": "username", "type": str, "value": "admin"},
+            "OK",
+            ""
+        )
+        self.assertEqual(_extractFromDict(data), expected)
