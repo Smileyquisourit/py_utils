@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # The ConfigParam class
 # ---------------------------------------------------------
-# ./ConfigHelper/config_param.py
+# py_utils/ConfigHelper/config_param.py
 
 
 """

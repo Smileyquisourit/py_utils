@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # Tests for config variables
 # ---------------------------------------------------------
-# ./tests/test_ConfigHelper/test_configVariable.py
+# tests/test_ConfigHelper/test_configVariable.py
 """ Tests for the config_variable module """
 
 import unittest
