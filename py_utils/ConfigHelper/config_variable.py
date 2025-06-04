@@ -11,11 +11,15 @@ Module config_variable
 ======================
 
 This module provides classes and utility functions for defining and parsing configuration variables 
-from strings. 
+from strings and dictionary. 
 
 Concerning the string, it supports a declarative syntax where a configuration line is represented as:
 
     <VariableName>[:<VariableType>]=<VariableValue>
+
+Concerning the dictionary, it should contain a 'name' and 'value' key, and optionaly a 'type' key. The 
+'name' value should be a str, the 'value' should also be a string, but type validation isn't enforced yet. 
+As for the 'type', it should be a type or have an attribute '__name__' and be a supported one.
 
 Where :
 - <VariableName> is the name of the variable, and should be a valid python name;
@@ -385,6 +389,12 @@ def _extractFromString(line:str) -> tuple[dict[str:any],str]:
 def _extractFromDict(_dict:dict) -> tuple[dict[str:any],str]:
     """ Internal helper to extract variable name, type, and value from a dict.
 
+    A dictionary representing a configuration variable should contain a 'name' and
+    'value' key, and optionaly a 'type' key. The 'name' value should be a str, the 
+    'value' should also be a string, but type validation isn't enforced yet. As for 
+    the 'type', it should be a type or have an attribute '__name__' and be a supported
+    one.
+
     Parameter
     ---------
     :param _dict: The dict to parse.
@@ -429,6 +439,8 @@ def _extractFromDict(_dict:dict) -> tuple[dict[str:any],str]:
     # Check value
     if not (value := _dict.get("value",None)):
         return (components,"NO_VALUE_FOUND",err_msg["NO_VALUE_FOUND"])
+    # TODO: check the type of the value, it should be a string. Maybe we could 
+    # try to convert it to a str.
     components["value"] = value
 
     return (components,"OK","")
