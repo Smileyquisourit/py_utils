@@ -552,7 +552,7 @@ class ConfigHelper():
         # Get variable  if no section:
         if not section or not section in self.sections_names:
             return self._DEFAULTS.get(variable,fallback)
-        if value := self[section].get(variable,_NO_FALLBACK) == _NO_FALLBACK:
+        if (value := self[section].get(variable,_NO_FALLBACK))== _NO_FALLBACK:
             return value
         return self._DEFAULTS.get(variable,fallback)
 
@@ -617,7 +617,11 @@ class ConfigHelper():
 
         # Strip line and ignore comments or empty line
         line = line.lstrip()
-        if not line or line[0] in self._comments_indicators:
+        print("\n\n\n[DEBUG]")
+        print(f"line to parse: {line} (as type {type(line)})")
+        print(f"comments indicators: {self._comments_indicators}")
+        print("[END DEBUG]\n\n\n")
+        if not line or line.startswith(tuple(self._comments_indicators)):
             return current_section
         
         # Check start of a new section

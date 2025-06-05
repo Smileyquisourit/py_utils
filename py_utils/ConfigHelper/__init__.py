@@ -47,6 +47,7 @@ from .config_variable import ConfigVariable
 # (only) for the number of line.
 # - Return a tuple or iterator when calling XX.items() and not a dictionary view (there shouldn't be something that 
 # enable the user to change the value, and this may be the case when returning dict.items())
-#
+# - Add equality operator for config section and variable
+# - Check thaht the ConfigSection with_defaults() is used when it should be (ie in getitem, getattribute, get, ...)
 # - Add generic type for the config classes, see https://docs.python.org/3/library/stdtypes.html#types-genericalias
 # - see https://en.wikipedia.org/wiki/INI_file for more idea
