@@ -46,6 +46,9 @@ string (e.g., 'int', 'float', and 'bool'), or a class (which must have a '__name
 
 import os
 import json
+import warnings
+
+from collections.abc import Iterable
 
 from .config_variable import ConfigVariable
 from .config_section import ConfigSection, _checkNewSection, _NO_FALLBACK
@@ -194,10 +197,207 @@ class ConfigHelper():
     # Methods for reading a config:
     # -----------------------------
 
-    def read(self, conf_obj:any, type:any):
-        pass
-    def read_safe(self, conf_obj, type, default_conf, default_type):
-        pass
+    def _read(self, conf_obj:str|dict|Iterable[str|dict], safe:bool, warn:bool):
+        """
+        Read one or more configuration objects.
+
+        This method implement the logic to select the correct method to read different configurations
+        objects.
+
+        Parameters
+        ----------
+        :param conf_obj: A configuration object or an iterable of configuration object to read.
+        :type conf_obj: str, dict, or Iterable[str or dict]
+
+        :param safe: A flag to indicate if we are in safe mode or not.
+        :type safe: bool
+
+        :param warn: A flag to raise a warning when an error is raised when reading a configuration.
+        :type warn: bool
+
+        Return
+        ------
+        :return: `True` if at least one configuration was successfully read.
+        :rtype: bool
+
+        Raise
+        -----
+        :raise TypeError: When a parameter isn't of the expected type.
+
+        Notes
+        ----- 
+        - If the provided path has no extension or an unknown extension but is a valid filename, this method 
+        will attempt to parse it as an INI file.
+        - When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
+        but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
+        configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
+        """
+
+        # Type check/conversion:
+        # ----------------------
+        if not isinstance(conf_obj,Iterable) or isinstance(conf_obj,(dict,str)):
+            conf_obj = (conf_obj,)
+        for i,conf in enumerate(conf_obj):
+            if not isinstance(conf,(str,dict)):
+                raise TypeError(f"Configuration object at index {i} isn't a 'str' or a 'dict' (I've received a {type(conf)})")
+        if not isinstance(safe,bool):
+            raise TypeError(f"The 'safe' parameter should be a 'bool', instead I've received a {type(warn)}")
+        if not isinstance(warn,bool):
+            raise TypeError(f"The 'warn' parameter should be a 'bool', instead I've received a {type(warn)}")
+        
+        # Read configuration object:
+        # --------------------------
+        for i, conf in enumerate(conf_obj):
+            
+            # Dict case
+            if isinstance(conf,dict):
+                try: 
+                    self.read_dict(conf,safe)
+                    return True
+                except Exception as e:
+                    if warn:
+                        msg = f"\nIn configuration at index {i}: " + str(e)
+                        warnings.warn(msg)
+                        return False
+                        
+
+            # String case
+            if not os.path.isfile(conf):
+                try:
+                    self.read_str(conf,safe)
+                    return True
+                except Exception as e:
+                    if warn:
+                        msg = f"\nIn configuration at index {i}: " + str(e)
+                        warnings.warn(msg)
+                        return False
+
+            # File case
+            _, ext = os.path.splitext(conf)
+            if ext == '.json':
+                try:
+                    self.read_json(conf,safe)
+                    return True
+                except Exception as e:
+                    if warn:
+                        msg = f"\nIn configuration at index {i}: " + str(e)
+                        warnings.warn(msg)
+                        return False
+            else:
+                try:
+                    self.read_ini(conf,safe)
+                    return True
+                except Exception as e:
+                    if warn:
+                        msg = f"\nIn configuration at index {i}: " + str(e)
+                        warnings.warn(msg)
+                        return False
+        
+        return False
+        #
+    def read(self, conf_obj:str|dict|Iterable[str|dict], warn:bool=False) -> bool:
+        """
+        Read one or more configuration objects.
+
+        Each object in `conf_obj` is read in the given order, allowing subsequent objects to overwrite 
+        the values of preceding ones. This facilitates a default configuration that can be overridden by 
+        user-provided values, or read potential configuration from different location (like the current 
+        directory, the user's home directory, and some system-wide directory).
+
+        Since configuration objects can come in various formats (e.g., INI file, JSON file, dictionary, or 
+        string), this method attempts to determine the correct type based on the object's type. If it's a string, 
+        we first check if it's a valid filename (with the `os.path` module) and then check the file extension 
+        to infer the format if it's a file.
+
+        If this method cannot successfully read any configuration object, it will return `False`. Otherwise, 
+        it returns `True`. This method can raise a warning when trying to read an invalid configuration object,
+        if the parameter `warn` is set to `True`.
+
+        Parameters
+        ----------
+        :param conf_obj: A configuration object or an iterable of configuration object to read.
+        :type conf_obj: str, dict, or Iterable[str or dict]
+
+        :param warn: A flag to raise a warning when an error is raised when reading a configuration.
+            Default to `False`.
+        :type warn: bool
+
+        Return
+        ------
+        :return: `True` if at least one configuration was successfully read.
+        :rtype: bool
+
+        Raise
+        -----
+        :raise TypeError: When a parameter isn't of the expected type.
+
+        Notes
+        ----- 
+        - If the provided path has no extension or an unknown extension but is a valid filename, this method 
+        will attempt to parse it as an INI file.
+        - When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
+        but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
+        configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
+        """
+        return self._read(conf_obj,False,warn)
+        #
+    def read_safe(self, conf_obj:str|dict|Iterable[str|dict], default_conf:str|dict|Iterable[str|dict]|None=None, warn:bool=False):
+        """
+        Safely read one or more configuration objects, ensuring no new configuration variables are introduced.
+
+        Each objects in `conf_obj` is read in the same way as the regular `read` method, but raise an error
+        when a new variable or a new section is found. The default configuration can thus only be 'value overwritted',
+        and all variables of the configuration are knowned.
+
+        The optional `default_conf` is first read in the regular (unsafe) way, to avoid calling the `read` then the
+        `read_safe` methods.
+    
+        Parameters
+        ----------
+        :param conf_obj: A configuration object or an iterable of configuration object to read in safe mode.
+        :type conf_obj: str, dict, or Iterable[str or dict]
+
+        :param default_conf: A configuration object or an iterable of configuration object to read first
+            in an unsafe mode. Default to `None`.
+        :type default_conf: None, str, dict, or Iterable[str or dict]
+
+        :param warn: A flag to raise a warning when an error is raised when reading a configuration.
+            Default to `False`.
+        :type warn: bool
+
+        Return
+        ------
+        :return: `True` if at least one configuration was successfully read.
+        :rtype: bool
+    
+        :param default_conf: The reference configuration (or iterable of such) used to validate keys. 
+                             It defines the allowed structure and expected variables.
+        :type default_conf: str, dict, Iterable[str or dict], or None
+    
+        :param warn: A flag to emit warnings instead of raising errors when invalid configurations are encountered.
+                     Defaults to `False`.
+        :type warn: bool
+    
+        Raises
+        ------
+        :raise TypeError: If parameters are not of the expected types.
+        :raise Exception: If a new or unexpected section/variable is found in `conf_obj`.
+        
+        Notes
+        -----
+        - This method assumes that `default_conf` is either already loaded, or readable in the same way
+          as `conf_obj` (i.e., same accepted types).
+        - If `default_conf` is `None`, but no configuration was already loaded, an error will be raised on the 
+            first section or variable, effectively making an empty configuration.
+        - If multiple configuration objects are passed, they are read in order. Any violation halts the process.
+        """
+
+        success = False
+
+        if default_conf:
+            success = self._read(default_conf,False,warn)
+
+        return success or self._read(conf_obj,True,warn)
 
     def read_str(self, conf_str:str, safe:bool=False):
         """
@@ -617,10 +817,6 @@ class ConfigHelper():
 
         # Strip line and ignore comments or empty line
         line = line.lstrip()
-        print("\n\n\n[DEBUG]")
-        print(f"line to parse: {line} (as type {type(line)})")
-        print(f"comments indicators: {self._comments_indicators}")
-        print("[END DEBUG]\n\n\n")
         if not line or line.startswith(tuple(self._comments_indicators)):
             return current_section
         

@@ -7,6 +7,7 @@
 
 import unittest
 import tempfile
+import unittest.mock
 
 from py_utils.ConfigHelper.confighelper import *
 
@@ -106,7 +107,6 @@ class TestConfigHelper(unittest.TestCase):
 
     def test_comment_indicators_customization(self):
         """Test that custom comment indicators can be set."""
-        print("raise error !!!!")
         custom_conf = ConfigHelper(comments_indicators="!")
         conf_str = "! a comment\nvar=value"
         self.assertEqual(custom_conf._comments_indicators, "!")
@@ -279,3 +279,46 @@ var2 = val2
         with self.assertRaises(Exception):
             self.conf.read_ini(f_path, max_lines=100)
         os.unlink(f_path)
+
+
+    def test_read_correctObject(self):
+        
+        # String
+        with unittest.mock.patch.object(self.conf,'read_str') as patch:
+            self.conf._read("some str that shouldn't be a file",False,False)
+        patch.assert_called()
+        
+        # Dict
+        with unittest.mock.patch.object(self.conf,'read_dict') as patch:
+            self.conf._read({'dict':'configuration'},False,False)
+        patch.assert_called()
+        
+        # JSON
+        with unittest.mock.patch.object(self.conf,'read_json') as patch:
+            with tempfile.NamedTemporaryFile('r',suffix='.json') as f:
+                self.conf._read(f.name,False,False)
+        patch.assert_called()
+
+        # INI
+        with unittest.mock.patch.object(self.conf,'read_ini') as patch:
+            with tempfile.NamedTemporaryFile('r') as f:
+                self.conf._read(f.name,False,False)
+        patch.assert_called()
+        #
+    def test_read_returnValue(self):
+
+        # Correct config:
+        test = self.conf._read("varName : str = varValue",False,False)
+        self.assertTrue(test)
+
+        # Uncorrect config:
+        test = self.conf._read("varName : varType = varValue",False,False)
+        self.assertFalse(test)
+        #
+    def test_read_argsError(self):
+        with self.assertRaises(TypeError):
+            self.conf._read(42,False,False)
+        with self.assertRaises(TypeError):
+            self.conf._read("a str",safe=5,warn=False)
+        with self.assertRaises(TypeError):
+            self.conf._read("a str",safe=False,warn=5)
