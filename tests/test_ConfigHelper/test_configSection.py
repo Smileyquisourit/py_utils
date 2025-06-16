@@ -137,3 +137,21 @@ class TestConfigSection(unittest.TestCase):
         self.assertIsNone(_checkNewSection("not_a_section"))
         with self.assertRaises(TypeError):
             _checkNewSection(123)
+
+    def test_equality(self):
+        var1 = ConfigVariable("name",str,"value")
+        var2 = ConfigVariable("other_name",str,'value')
+
+        section1 = ConfigSection("section")
+        section1.add_variable(var1)
+        section1.add_variable(var2)
+
+        section2 = ConfigSection("section")
+        section2.add_variable(var1)
+        section2.add_variable(var2)
+
+        section3 = ConfigSection("section3")
+        section3.add_variable(var1)
+        
+        self.assertTrue(section1 == section2)
+        self.assertFalse(section1 == section3)

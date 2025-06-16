@@ -36,6 +36,14 @@ class test_ConfigVariable(unittest.TestCase):
         with self.assertRaises(ValueError):
             ConfigVariable("test_var", list, [])
 
+    def test_equality(self):
+        var1 = ConfigVariable("name",str,"value")
+        var2 = ConfigVariable("name",str,"value")
+        self.assertTrue(var1 == var2)
+
+        var3 = ConfigVariable("other_name",str,'value')
+        self.assertFalse(var1 == var3)
+
     def test_value_setter_converts(self):
         var = ConfigVariable("v", int, "42")
         var.value = "100"

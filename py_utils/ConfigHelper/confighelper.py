@@ -52,8 +52,11 @@ from collections.abc import Iterable
 
 from .config_variable import ConfigVariable
 from .config_section import ConfigSection, _checkNewSection, _NO_FALLBACK
+from .config_exceptions import ConfigSafeMode_NewSection, ConfigSafeMode_NewVariable, ConfigRead_fileToBig
 
 _DEFAULT_MAX_LINE = 100
+_DEFAULT_MAX_SIZE = 20 * 1024 # 20 Ko
+
 
 class ConfigHelper():
 
@@ -94,7 +97,7 @@ class ConfigHelper():
         object.__setattr__(instance,"_SECTIONS",dict())
         return instance
 
-    def __init__(self, comments_indicators : None|str|list[str] = None):
+    def __init__(self, comments_indicators : None|str|list[str] = None, file_maxSize:int = _DEFAULT_MAX_SIZE):
         """
         Initialize a ConfigHelper instance.
 
@@ -102,16 +105,30 @@ class ConfigHelper():
         supporting a modified INI format and a JSON format. It can parse configuration 
         files, store variables and sections, and apply default variables across sections.
 
+        Before reading a file, it's size is checked to avoid reading too large file. The default 
+        maximum size allowed is 20 Ko, but this value can be changed. To avoid size checking, you
+        can specified the `file_maxSize` to `-1` or any negative number.
+
         Parameters
         ----------
         :param comments_indicators: The character(s) used to identify comment lines in the 
             INI format. By default, comments are identified using ';' and '#'. This parameter 
             allows customization of the comment indicators to fit different needs.
         :type comments_indicators: None | str | list[str], optional
+
+        :param file_maxSize: The maximum size allowed for reading a file (either INI or JSON). If the file
+            is greater than this size, an error will be raised before trying to open it. Default to 20 Ko.
+        :type file_maxSize: int
         """
+
+        # Type check:
+        # -----------
+        if not isinstance(file_maxSize,int):
+            raise TypeError(f"The maximum allowed file size should be an 'int', isntead I've received a '{type(file_maxSize).__name__}'")
 
         if comments_indicators:
             self._comments_indicators = comments_indicators
+        self._file_maxSize = file_maxSize
 
 
     # Dunder methods:
@@ -140,13 +157,15 @@ class ConfigHelper():
 
     def __getattribute__(self, name):
 
-        # Get the section if a config section is requested
+        # Get _SECTIONS and _DEFAULTS:
         all_sections = object.__getattribute__(self,"_SECTIONS")
+        defaults = object.__getattribute__(self,"_DEFAULTS")
+
+        # Get the section if a config section is requested
         if name in all_sections.keys():
-            return all_sections[name]
+            return all_sections[name].with_defaults(defaults)
         
         # Get the variable if a config variable is requested
-        defaults = object.__getattribute__(self,"_DEFAULTS")
         if name in defaults.keys():
             return defaults[name]
         
@@ -228,7 +247,7 @@ class ConfigHelper():
         ----- 
         - If the provided path has no extension or an unknown extension but is a valid filename, this method 
         will attempt to parse it as an INI file.
-        - When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
+        - When reading a configuration, an error is raised when a section or a variable isn't correctly formatted,
         but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
         configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
         """
@@ -399,6 +418,7 @@ class ConfigHelper():
 
         return success or self._read(conf_obj,True,warn)
 
+
     def read_str(self, conf_str:str, safe:bool=False):
         """
         Parse a configuration from a string in the modified INI format.
@@ -418,6 +438,7 @@ class ConfigHelper():
         for line in conf_str.splitlines():
             current_section = self._parse_line(line,current_section,safe)
 
+        #
     def read_ini(self, conf_file:str, safe:bool=False, max_lines:int=_DEFAULT_MAX_LINE):
         """
         Parse a configuration from a file in the modified INI format.
@@ -450,6 +471,10 @@ class ConfigHelper():
             raise FileNotFoundError(f"The config file '{conf_file}' wasn't found!")
         if not os.access(conf_file, os.R_OK):
             raise PermissionError(f"The config file '{conf_file}' was found, but can't be open in read mode!")
+        
+        # Check size:
+        if self._file_maxSize >= 0 and (file_size := os.path.getsize(conf_file)) > self._file_maxSize:
+            raise ConfigRead_fileToBig(f"File {conf_file} to big to be read ({file_size} > {self._file_maxSize}) !")
         
         # Read file:
         nLigne = 0
@@ -521,7 +546,7 @@ class ConfigHelper():
             # Construct section
             for section_name, section_vars in section_dict.items():
                 self._parse_dict(section_name, section_vars, safe)
-    
+        #
     def read_json(self, conf_file:str, safe:bool=False) -> None:
         """
         Parse a configuration from a JSON file.
@@ -551,6 +576,10 @@ class ConfigHelper():
             raise FileNotFoundError(f"The config file '{conf_file}' wasn't found!")
         if not os.access(conf_file, os.R_OK):
             raise PermissionError(f"The config file '{conf_file}' was found, but can't be open in read mode!")
+        
+        # Check size:
+        if self._file_maxSize >= 0 and (file_size := os.path.getsize(conf_file)) > self._file_maxSize:
+            raise ConfigRead_fileToBig(f"File {conf_file} to big to be read ({file_size} > {self._file_maxSize}) !")
         
         # Read file:
         with open(conf_file,'r') as f:
@@ -689,31 +718,31 @@ class ConfigHelper():
 
     def sections_items(self):
         """
-        Get a set-like over (section_name, ConfigSection) pairs.
+        Get a tuple containing (section_name, ConfigSection) pairs.
 
         Returns
         -------
-        :return: An iterator over (section_name, ConfigSection) pairs.
+        :return: An tuple containing (section_name, ConfigSection) pairs.
         :rtype: iterator
         """
-        return self._SECTIONS.items()
+        return tuple(self._SECTIONS.items())
     
     def defaults_items(self):
         """
-        Get an iterator over (variable_name, ConfigVariable) pairs from the defaults section.
+        Get an tuple containing (variable_name, ConfigVariable) pairs from the defaults section.
 
         Returns
         -------
-        :return: An iterator over (variable_name, ConfigVariable) pairs.
+        :return: An tuple tuple (variable_name, ConfigVariable) pairs.
         :rtype: dictionary view
         """
-        return self._DEFAULTS.items()
+        return tuple(self._DEFAULTS.items())
     
     def get(self, section:str|None, variable:str, fallback=None):
         """
         Get the value of a variable from a specific section or from the defaults if not found.
         If the value isn't found in the section or in the default value, the fallback (if provieded)
-        is returned. When no fallback is provieded and the variable isn't found, 
+        is returned. When no fallback is provieded and the variable isn't found, return `None`.
 
         Parameters
         ----------
@@ -747,13 +776,16 @@ class ConfigHelper():
         if section and not isinstance(section,str):
             raise TypeError(f"Impossible to index section of conf by key of type {type(section)}")
         if not isinstance(variable,str):
-            raise TypeError(f"Impossible to index variable of conf by key of type {type(section)}")
+            raise TypeError(f"Impossible to index variable of conf by key of type {type(variable)}")
 
-        # Get variable  if no section:
+        # Get variable in _DEFAULT if no section:
         if not section or not section in self.sections_names:
             return self._DEFAULTS.get(variable,fallback)
-        if (value := self[section].get(variable,_NO_FALLBACK))== _NO_FALLBACK:
+        
+        # Get variable
+        if (value := self[section].with_defaults(self._DEFAULTS).get(variable,_NO_FALLBACK)) != _NO_FALLBACK:
             return value
+        
         return self._DEFAULTS.get(variable,fallback)
 
 
@@ -823,7 +855,7 @@ class ConfigHelper():
         # Check start of a new section
         if new_section := _checkNewSection(line):
             if safe and not (new_section in self.sections_names) :
-                raise Exception(f"New section {new_section} while reading config but mode safe is active (known section: {self.sections_names})")
+                raise ConfigSafeMode_NewSection(f"New section {new_section} while reading config but mode safe is active (known section: {self.sections_names})")
             return new_section
         
         # Create new var:
@@ -832,10 +864,10 @@ class ConfigHelper():
         if not current_section:
             # We are still reading defaults from the config
             if safe and not new_var in self._DEFAULTS:
-                raise Exception(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
+                raise ConfigSafeMode_NewVariable(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
             
         elif safe and not new_var in self[current_section]:
-            raise Exception(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
+            raise ConfigSafeMode_NewVariable(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
         
         self.update_section(current_section, new_var)
         return current_section
@@ -868,7 +900,7 @@ class ConfigHelper():
         
         # Check section name:
         if safe and not key in self.sections_names:
-            raise Exception(f"A new section nammed '{key}' was encourenterd in safe mode!")
+            raise ConfigSafeMode_NewSection(f"A new section nammed '{key}' was encourenterd in safe mode!")
         section = key
 
         # Update section
@@ -879,10 +911,10 @@ class ConfigHelper():
             if not section:
                 # We are still reading defaults from the config
                 if safe and not new_var in self._DEFAULTS:
-                    raise Exception(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
+                    raise ConfigSafeMode_NewVariable(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
             
             elif safe and not new_var in self[section]:
-                raise Exception(f"New variable '{new_var._name}' in section '{section}' while reading config but mode safe is active")
+                raise ConfigSafeMode_NewVariable(f"New variable '{new_var._name}' in section '{section}' while reading config but mode safe is active")
             
             self.update_section(section,new_var)
 

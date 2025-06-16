@@ -71,6 +71,15 @@ class ConfigSection(object):
     def __len__(self) -> int:
         return len(self._vars.keys())
 
+    def __eq__(self, other) -> bool:
+        
+        if not isinstance(other,ConfigSection):
+            return False
+        
+        if self._name != other._name:
+            return False
+        
+        return self._vars == other._vars
 
     # Dunder methods for accessing a variable:
     # ----------------------------------------
@@ -262,16 +271,16 @@ class ConfigSection(object):
     # ----------------------------
 
     def items(self):
-        """ Returns a dictionary view containing tuples of (keys, values). """
-        return self._vars.items()
+        """ Returns a tuple containing tuples of (keys, values). """
+        return tuple(self._vars.items())
     
     def keys(self):
-        """  Returns a dictionary view object with a dynamic view of the keys in the section.  """
-        return self._vars.keys()
+        """  Returns a tuple containing the keys in the section.  """
+        return tuple(self._vars.keys())
     
     def values(self):
-        """  Returns a dictionary view object with a dynamic view of the variables in the section.  """
-        return self._vars.values()
+        """  Returns a tuple containing the variables in the section.  """
+        return tuple(self._vars.values())
     
     def get(self, key:str, fallback:any=_NO_FALLBACK):
         """

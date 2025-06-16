@@ -36,11 +36,10 @@ The following type are currently supported:
 import re
 import functools
 
+from .config_exceptions import ConfigConversionError
+
 # Conversion functionality:
 # -------------------------
-
-class ConfigConversionError(Exception):
-    pass
 
 def _convert_str(value:any,cVarName,cVarType) -> str:
     try:
@@ -152,11 +151,20 @@ class ConfigVariable(object):
         self._value = self._validate_value(value)
 
     def __repr__(self):
-        return f"{self._name}:{self._type} = {self._value}"
+        return f"{self._name}:{self._type.__name__} = {self._value}"
  
     def __str__(self) -> str:
         return self.__repr__()
  
+    def __eq__(self, other) -> bool:
+        
+        if not isinstance(other,ConfigVariable):
+            return False
+        
+        return \
+            self._name == other._name and \
+            self._type == other._type and \
+            self._value == other._value
 
     # Private methods
     # ---------------
@@ -182,7 +190,7 @@ class ConfigVariable(object):
         try:
             correct_value = _CONVERSION_FUNC[self._type](new_value,self._name,self._type)
         except KeyError as e:
-            err_msg = f"No conversion function found for type {self._type}, supported type are {_SUPPORTED_TYPE}.\n"
+            err_msg = f"No conversion function found for type '{self._type.__name__}', supported type are {_SUPPORTED_TYPE}.\n"
             err_msg += "Maybe your conversion function wasn't registered before the config was read ?\n"
             err_msg += str(e)
             raise KeyError(err_msg)
@@ -214,7 +222,7 @@ class ConfigVariable(object):
             return _SUPPORTED_TYPE[new_type]
         
         if not new_type in _SUPPORTED_TYPE.values():
-            raise ValueError(f"The type '{type(new_type)}' isn't supported.")
+            raise ValueError(f"The type '{type(new_type).__name__}' isn't supported.")
         return new_type
 
 
@@ -439,8 +447,6 @@ def _extractFromDict(_dict:dict) -> tuple[dict[str:any],str]:
     # Check value
     if not (value := _dict.get("value",None)):
         return (components,"NO_VALUE_FOUND",err_msg["NO_VALUE_FOUND"])
-    # TODO: check the type of the value, it should be a string. Maybe we could 
-    # try to convert it to a str.
     components["value"] = value
 
     return (components,"OK","")

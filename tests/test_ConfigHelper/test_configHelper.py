@@ -240,14 +240,41 @@ var2 = val2
                 "DEFAULTS": [{"name":"var1", "value":"val1"}],
                 "SECTIONS": [{"section1": [{"name":"var2", "value":"val2"}]}]
             }, f)
-            f_path = f.name
-        self.conf.read_json(f_path)
-        self.assertIn('var1', self.conf._DEFAULTS.keys())
-        os.unlink(f_path)
+            f.flush()
+            
+            self.conf.read_json(f.name)
+            self.assertIn('var1', self.conf._DEFAULTS.keys())
 
-    def test_read_json_file_not_found(self):
+    def test_read_json_error(self):
         with self.assertRaises(FileNotFoundError):
             self.conf.read_json('nonexistent.json')
+
+        with tempfile.NamedTemporaryFile('w+') as f:
+            json.dump({
+                "DEFAULTS": [{"name":"var1", "value":"val1"}],
+                "SECTIONS": [{"section1": [{"name":"var2", "value":"val2"}]}]
+            }, f)
+            f.flush()
+
+            new_conf = ConfigHelper(file_maxSize=10)
+            with self.assertRaises(ConfigRead_fileToBig):
+                new_conf.read_json(f.name)
+    
+    def test_read_json_ignoreSize(self):
+
+        with tempfile.NamedTemporaryFile('w+') as f:
+            json.dump({
+                "DEFAULTS": [{"name":"var1", "value":"val1"}],
+                "SECTIONS": [{"section1": [{"name":"var2", "value":"val2"}]}]
+            }, f)
+            f.flush()
+
+            with unittest.mock.patch('py_utils.ConfigHelper.confighelper._DEFAULT_MAX_SIZE',10):
+                new_conf = ConfigHelper(file_maxSize=-1)
+                try:
+                    new_conf.read_json(f.name)
+                except ConfigRead_fileToBig as e:
+                    self.fail("Exception file too big raised when max size < 0")
 
     def test_read_ini_success(self):
         ini_content = """
@@ -255,14 +282,13 @@ var1 = val1
 [section1]
 var2 = val2
 """
-        with tempfile.NamedTemporaryFile('w+', delete=False) as f:
+        with tempfile.NamedTemporaryFile('w+') as f:
             f.write(ini_content)
             f.flush()
-            f_path = f.name
-        self.conf.read_ini(f_path)
-        self.assertIn('section1', self.conf._SECTIONS)
-        self.assertIn('var1', self.conf._DEFAULTS.keys())
-        os.unlink(f_path)
+
+            self.conf.read_ini(f.name)
+            self.assertIn('section1', self.conf._SECTIONS)
+            self.assertIn('var1', self.conf._DEFAULTS.keys())
 
     def test_read_ini_errors(self):
 
@@ -270,15 +296,38 @@ var2 = val2
         with self.assertRaises(FileNotFoundError):
             self.conf.read_ini('nonexistent.ini')
 
-        # Too many lines
-        with tempfile.NamedTemporaryFile('w+', delete=False) as f:
+        # File to big
+        with tempfile.NamedTemporaryFile('w+') as f:
             for _ in range(110):
                 f.write("var = val\n")
             f.flush()
-            f_path = f.name
-        with self.assertRaises(Exception):
-            self.conf.read_ini(f_path, max_lines=100)
-        os.unlink(f_path)
+
+            new_conf = ConfigHelper(file_maxSize=10)
+            with self.assertRaises(ConfigRead_fileToBig):
+                new_conf.read_ini(f.name)
+
+        # Too many lines
+        with tempfile.NamedTemporaryFile('w+') as f:
+            for _ in range(110):
+                f.write("var = val\n")
+                f.flush()
+
+            with self.assertRaises(Exception):
+                self.conf.read_ini(f.name, max_lines=100)
+    
+    def test_read_ini_ignoreSize(self):
+
+        with tempfile.NamedTemporaryFile('w+') as f:
+            for _ in range(50):
+                f.write("var = val\n")
+            f.flush()
+
+            with unittest.mock.patch('py_utils.ConfigHelper.confighelper._DEFAULT_MAX_SIZE',10):
+                new_conf = ConfigHelper(file_maxSize=-1)
+                try:
+                    new_conf.read_ini(f.name)
+                except ConfigRead_fileToBig as e:
+                    self.fail("Exception file too big raised when max size < 0")
 
 
     def test_read_correctObject(self):
