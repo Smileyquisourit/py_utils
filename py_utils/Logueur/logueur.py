@@ -5,9 +5,7 @@
 # ./Logueur/logueur.py
 
 """ 
-==============
-Module logueur
-==============
+**text from Logueur/logueur**
 
 Implement the Logueur class, used for logging messages to various output, and a factury function for 
 this class. This Logueur class is used to centralise logging, and provides a default interface for
@@ -80,10 +78,10 @@ class Logueur():
 
         Parameters
         ----------
-        :param output: The destination of the log's messages. Shall be a 
+            :param output: The destination of the log's messages. Shall be a 
             class herited of the BaseLogHandler or a list of object herited from BaseLogHandler in case of 
             mulitple destination.
-        :type output: BaseLogHandler, list[BaseLogHandler]
+            :type output: BaseLogHandler, list[BaseLogHandler]
 
         :param topicGenerationMethod: A string used to determine how to generate the topic of the 
             message. Can be 'stack' or 'module', see :mod:`Logueur.log_topic`. Default to `'module'`.
@@ -507,32 +505,23 @@ class Logueur():
 
 def ConsoleLogueurFactory(level:Union[str,LogLevel],filter:Union[str,LogTopicFilter]="#",
                           supportColor:bool=True, useStderr:bool=True) -> Logueur:
-    """ 
-    =====================
-    ConsoleLogueurFactory
-    =====================
-    
+    """    
     Construct a Logueur configured with an output to the console.
     
-    Parameters
-    ----------
     :param level: The level used for filtrate log messages.
     :type level: LogLevel, str
 
     :param filter:
         The topic filtrer used for filtrate log messages. Default to `'#'` (all topics).
     :type filter: LogTopicFilter, str
-
     :param supportColor: If the console support color, and if colors should be used.
         Default to `True`.
     :type supportColor: bool
-
     :param useStderr: `True` to use stderr for warning, error and fatal message.
         Default to `True`.
     :type useStderr: bool
 
-    Return
-    ------
+
     :return: The constructed Logueur instance.
     :rtype: Logueur
     """

@@ -4,10 +4,9 @@
 # ---------------------------------------------------------
 # ./py_utils/Logueur/log_out.py
 
-""" 
-==============
-Module log_out
-==============
+"""
+
+**Text from Logueur/log_out.py**
 
 Implement an abstract base class for defining an output for a logger. This abstract class implement how the messages
 are filtered, and define an abstract method that should define how a message is writted.

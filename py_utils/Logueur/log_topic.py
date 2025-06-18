@@ -2,12 +2,11 @@
 # ---------------------------------------------------------
 # Log messages' topic and topic filter
 # ---------------------------------------------------------
-# ./py_utils/Logueur/log_level.py
+# ./py_utils/Logueur/log_topic.py
 
 """ 
-================
-Module log_topic
-================
+
+**Text from Logueur/log_topic.py**
 
 This module implement differents class and functions to generate, represent and filtrate log messages'
 topics. These topics are constitued of different keys separate with a dot and supports a form of regex
@@ -197,22 +196,21 @@ class LogTopic():
 
         This static method use the inspect module to inspect the execution stack. It ignore the 
         first n_frame given in argument. This function generate the topic by using 2 methods, that 
-        the user can choose
-        
-        - by `stack`: generate the topic by concatening the `function` property of each `FrameInfo` 
-        of the execution stack returned by the function `inspect.stack()`. The topic start with the 
-        outermost frame's function, and each function name are separated by a dot.
+        the user can choose:
 
-        - by `module`: generate the topic in the following form 
-            - `module_name.class_name.methode_name` or
+        - by `stack`: generate the topic by concatening the `function` property of each `FrameInfo` 
+            of the execution stack returned by the function `inspect.stack()`. The topic start with the 
+            outermost frame's function, and each function name are separated by a dot.
+        - by `module`: generate the topic in one of the following form 
+
+            - `module_name.class_name.methode_name`
             - `module_name.function_name`
 
         Parameters
         ----------
 
-        :param method: 
-            The method to use for generating the topic. Must be member of `["stack","module"]`. Default 
-            is `module`.
+        :param method: The method to use for generating the topic. Must be member of `["stack","module"]`. Default 
+            to `module`.
         :type method: str or None
 
         :param n_frame: Dependending of the methode used, represent the number of frame to ignore

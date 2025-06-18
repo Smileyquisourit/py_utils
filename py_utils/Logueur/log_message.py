@@ -5,9 +5,8 @@
 # ./py_utils/Logueur/log_message.py
 
 """ 
-================
-Module log_topic
-================
+
+**Text from Logueur/log_message.py**
 
 Implement the LogMessage class, encapsulating all of the relevant informations of a log message.
 """
@@ -34,7 +33,9 @@ class LogMessage():
 
     An instance of this class also contains the format of the message to
     be used, the default is
+    
         `[{level}] {topic}\\n{body}\\n\\n`
+
     """
 
     _msg_fmt = "[{level}] {topic}\n{body}\n\n"
@@ -45,7 +46,9 @@ class LogMessage():
 
         Should at least contains '{body}', and will be formatted
         using 
+
             `str.format()`
+            
         called with 'body', 'level', 'topic', 'date', and 'time'
         """
         return self._msg_fmt

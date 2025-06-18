@@ -11,12 +11,13 @@ Module configHelper
 
 This module contains the ConfigHelper class, which represents a configuration. 
 This class provides methods to read a configuration from different formats:
+
 - A modified INI format
 - A JSON format
 
-
 Modified INI format
 --------------------
+
 A plain-text format in which each line follows the form:
 
     <VariableName>[:<VariableType>]=<VariableValue>
@@ -24,12 +25,13 @@ A plain-text format in which each line follows the form:
 Here, the VariableType is optional (default is `str`). Arbitrary whitespace 
 between elements is allowed, but the order cannot be changed. Comments explaining 
 the variables can be added, but they must be on separate lines. By default, comment 
-delimiters are ';' and '#', although these can be changed.
-
+delimiters are `';'` and `'#'`, although these can be changed.
 
 JSON format
 ------------
-A JSON format where the top-level dictionary must contain two keys: 'DEFAULTS' and 'SECTIONS'. 
+
+A JSON format where the top-level dictionary must contain two keys: 'DEFAULTS' and 'SECTIONS'.
+
 - 'DEFAULTS' should be a dictionary representing a section containing all default variables 
   shared by all sections.
 - 'SECTIONS' should be a list of dictionaries, each representing a section.
@@ -352,11 +354,13 @@ class ConfigHelper():
 
         Notes
         ----- 
+
         - If the provided path has no extension or an unknown extension but is a valid filename, this method 
-        will attempt to parse it as an INI file.
+            will attempt to parse it as an INI file.
         - When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
-        but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
-        configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
+            but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
+            configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
+            
         """
         return self._read(conf_obj,False,warn)
         #

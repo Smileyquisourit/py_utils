@@ -1,9 +1,13 @@
-# Ignorer tous les fichiers contenant "egg-info"
+# Python files
 *egg-info*
-
-# Ignorer les fichiers de cache Python
 __pycache__/
 *.py[cod]
+
+# Environment
+.venv/*
+
+# Documentation
+docs/build/*
 
 # Sand box for dev:
 sandBox*.py

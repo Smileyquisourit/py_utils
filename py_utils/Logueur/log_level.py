@@ -4,10 +4,9 @@
 # ---------------------------------------------------------
 # ./py_utils/Logueur/log_level.py
 
-""" 
-================
-Module log_level
-================
+"""
+
+**Text from Logueur/log_level.py**
 
 Implement the LogLevel class, an Enum class for the differents levels supported. The different
 levels are detailed in the following table:
