@@ -5,56 +5,42 @@
 # ./py_utils/Logueur/log_level.py
 
 """
+Each log message is associated to a severity level, that mirror common logging standards:
 
-**Text from Logueur/log_level.py**
++---------+--------+----------------------------------------------------------------------------------------------------------------+
+| Name    | number | Description                                                                                                    |
++=========+========+================================================================================================================+
+| DEBUG   | 0      | Provides detailed diagnostic information, useful during development or troubleshooting.                        |
++---------+--------+----------------------------------------------------------------------------------------------------------------+
+| INFO    | 1      | Conveys general status and operational messages for normal, expected behavior.                                 |
++---------+--------+----------------------------------------------------------------------------------------------------------------+
+| WARNING | 2      | Indicates that something unexpected occurred, but the application can continue running.                        |
++---------+--------+----------------------------------------------------------------------------------------------------------------+
+| ERROR   | 3      | Represents a significant issue that disrupts part of the system’s functionality.                               |
++---------+--------+----------------------------------------------------------------------------------------------------------------+
+| FATAL   | 4      | Denotes a critical error leading to termination of the application (analogous to CRITICAL in many frameworks). |
++---------+--------+----------------------------------------------------------------------------------------------------------------+
 
-Implement the LogLevel class, an Enum class for the differents levels supported. The different
-levels are detailed in the following table:
-
-+---------+--------+-----------------------------------------------------------------------------------------------+
-| Name    | number | Description                                                                                   |
-+=========+========+===============================================================================================+
-| DEBUG   | 0      | Detailed information used for diagnostic.                                                     |
-+---------+--------+-----------------------------------------------------------------------------------------------+
-| INFO    | 1      | General information for normal operations.                                                    |
-+---------+--------+-----------------------------------------------------------------------------------------------+
-| WARNING | 2      | Indication that something unexpected happened, but the application is still running.          |
-+---------+--------+-----------------------------------------------------------------------------------------------+
-| ERROR   | 3      | Serious issue that has occurred, causing some part of the application to malfunction or fail. |
-+---------+--------+-----------------------------------------------------------------------------------------------+
-| FATAL   | 4      | Critical error causing the termination of the application.                                    |
-+---------+--------+-----------------------------------------------------------------------------------------------+
-
-Classes
--------
-LogLovel(Enum): 
-    An Enum class for the differents levels, with a factory method for constructing a member of
-    this class from a string or an int. This class also implement rich comparison operators.
+These levels are intentionally ordered, with higher numbers signifying more serious conditions, DEBUG being the least critical, and 
+FATAL being the most severe. The :class:`LogLevel` class supports comparison operations (`==`, `!=`, `>`, `<`, `>=`, and `<=`), 
+allowing easy filtering based on thresholds. Moreover, the :meth:`~LogLevel.factory()` method enables flexible creation of a 
+:class:`LogLevel` instance from either a numeric value or a textual name (case-insensitive), e.g., `LogLevel.factory(2)` or 
+`LogLevel.factory('warning')` both correspond to the WARNING level.
 """
 
 from enum import Enum
 from typing import Union
 
 class LogLevel(Enum):
-    """ LogLevel
+    """
+    Class enumerating the different severity levels supported for a log message. The different levels are defined as in the 
+    following:
 
-    Class enumerating the different levels supported for a
-    log message. The different levels are defined as in the following
-    table.
-
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | Name    | number | Description                                                                                   |
-    +=========+========+===============================================================================================+
-    | DEBUG   | 0      | Detailed information used for diagnostic.                                                     |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | INFO    | 1      | General information for normal operations.                                                    |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | WARNING | 2      | Indication that something unexpected happened, but the application is still running.          |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | ERROR   | 3      | Serious issue that has occurred, causing some part of the application to malfunction or fail. |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
-    | FATAL   | 4      | Critical error causing the termination of the application.                                    |
-    +---------+--------+-----------------------------------------------------------------------------------------------+
+    - `DEBUG` (0) : Detailed information used for diagnostic.
+    - `INFO` (1) : General information for normal operations.
+    - `WARNING` (2) : Indication that something unexpected happened, but the application is still running.
+    - `ERROR` (3) : Indication that something unexpected happened, but the application is still running.
+    - `FATAL` (4) : Critical error causing the termination of the application.
 
     This class also implement the `==`, `!=`, `>`, `<`, `>=` and `<=` operators for comparing levels, and a factory
     method to create one from either the number or the name.
@@ -142,20 +128,12 @@ class LogLevel(Enum):
     @classmethod
     def factory(cls, level:Union[str,int]):
         """ 
-        ==============
-        Factory method
-        ==============
-
         Return a member of the LogLevel Enum class for the corresponding level. The level can be the name of
         the level, in upper or lower case, or the number of the level.
 
-        Parameters
-        ----------
         :param level: The wanted level.
         :type level: str or int
 
-        Return
-        ------
         :return: The log level wanted.
         :rtype: LogLevel
         """
