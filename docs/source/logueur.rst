@@ -2,9 +2,7 @@ Logging Framework
 =================
 
 .. automodule:: py_utils.Logueur
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
    :noindex:
 
 Contents

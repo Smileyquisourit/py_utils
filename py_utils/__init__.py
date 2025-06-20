@@ -14,6 +14,8 @@
     files.
 """
 
+__all__ = ["Logueur", "ConfigHelper"]
+
 # Expose public interface:
 # ------------------------
 from .Logueur import Logueur

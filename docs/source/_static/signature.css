@@ -1,0 +1,12 @@
+/* Augmenter la taille des signatures dans Furo 
+   ============================================
+
+   .sig       -> La signature entière
+   .sig_name  -> Le nom de la signature (func, class, ...)
+   .sig-paren -> Les parenthèse de la signature
+   .sig-param -> Les paramètres de la signature
+*/
+.sig, .sig-name, .sig-paren, .sig-param {
+    font-size: 1.7em;  /* ou 1.2em, selon ton goût */
+    font-family: monospace;
+}

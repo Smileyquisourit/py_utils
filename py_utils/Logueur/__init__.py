@@ -7,7 +7,7 @@
 """
 The `Logueur` module implements a logging framework intended to be flexible enough to support projects 
 of all sizes — from small prototypes to large-scale applications — throughout their entire lifecycle. 
-The primary interface for logging messages is the :class:`py_utils.Logueur` class.
+The primary interface for logging messages is the :class:`~py_utils.Logueur` class.
 
 This framework provides two main filtering mechanisms for log messages:
 
@@ -49,33 +49,10 @@ modular components to log messages without needing to know how the logging syste
 
 """
 
-
-tmp="""
-
-    Objects
-    -------
-
-    Logueur:
-        The main object of the module. Used for logging messages to various output.
-        It's also responsible of creating the log's messages.
-    LogLevel:
-        A Enum class representing all the supported log's messages level.
-    LogMessage:
-        Encapsulate all of the relevant informations of a log message.
-    LogTopic:
-        Contains the topic of a log message. This class also implement a static method 
-        for generating a log topic from the execution stack.
-    LogTopicFilter:
-        Filter for log message's topic.
-
-    There is multiple log's destination (the console, a file, ...). See :mod:`Logueur.log_out`
-    for more information.
-
-    Functions
-    ---------
-    ConsoleLogueurFactory:
-        Construct a Logueur configured with an output to the console.
-"""
+__all__ = [
+    "Logueur", "ConsoleLogueurFactory", "LogLevel", "ConsoleLogHandler", "FileLogHandler", 
+    "RotaryFileLogHandler", "LogTopicFilter"
+]
 
 # Expose main interfaces:
 # -----------------------
@@ -84,3 +61,7 @@ from .logueur import Logueur, ConsoleLogueurFactory
 from .log_level import LogLevel
 from .log_out import ConsoleLogHandler, FileLogHandler, RotaryFileLogHandler
 from .log_topic import LogTopicFilter
+
+
+# TODO: See the doc and the logics of Logueur.getLogFunc, it seem to be something wrong
+# with the topic and topic generation method.

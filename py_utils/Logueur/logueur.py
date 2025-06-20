@@ -5,16 +5,43 @@
 # ./Logueur/logueur.py
 
 """ 
-**text from Logueur/logueur**
+The `Logueur` class is the main interface to log and route the messages of the application. This
+class follows the `Singleton` pattern, ensuring that only one instance of `Logueur` can exist at
+any given time. The method used to log a message is a class method, that receive a single 
+:class:`LogMessage` instance, enabling the following logic:
 
-Implement the Logueur class, used for logging messages to various output, and a factury function for 
-this class. This Logueur class is used to centralise logging, and provides a default interface for
-logging message to the console. With this default interface, a module can use the logging functionality 
-of the Logueur class, knowing that the message will be logged to the console if the user doesn't define 
-a log, or to the user logs if there is any.
+    *When a message is logged, the log method first check if an instance of Logueur exist.*
+    *If no instance is found, log send the message to the default handler, wich is a console*
+    *handler, else it send it to the handlers registered in the Logueur instance.*
 
-If a module log a message before the Logueur is initialized by the user, the message will be logged to
-the console (with the default log), and not to the user defined logs !!
+The handler is the object responsible for filtering, formatting and writting the message to the
+output, and will be discussed more in detail in the Log Output section. The user can register multiple
+handlers, effectively sending the message to different output, and configure each one differently. The
+default handler is a console handler, that send the message to the console (via stderr). It's configured
+in the following way:
+
+- The severity level is `WARNING`,
+- The topic filter is `'#'`, meaning all topics are accepted,
+- The formatted messages are printed to `stderr`.
+
+To register a different output, you can either use the :func:`ConsoleLogueurFactory` wich create
+a `Logueur` instance with a user configured console handler, or create manually a handler and register it
+with the :meth:`Logueur.register_output` method.
+
+When using the :meth:`Logueur.log` method to send a message, you have to create manually a :class:`LogMessage`
+instance. Altought this give you complete control as to how tme message is created, it can rapidly
+became cumbersome. The :class:`Logueur` class implement 5 methods to create such :class:`LogMessage`
+and calling the :meth:`Logueur.log` method, where you give the body of the message, and optionaly specify
+the topic and the format:
+
+- :meth:`Logueur.debug`
+- :meth:`Logueur.info`
+- :meth:`Logueur.warning`
+- :meth:`Logueur.error`
+- :meth:`Logueur.fatal`
+
+When initializing the `Logueur`, you have to specify one or multiple handler, and you can also
+specify a few other configuration, like the default format, or topic generation method.
 """
 
 # A way of implementing a singleton, not used
@@ -39,11 +66,7 @@ _default_level = LogLevel.factory("warning")
 _default_filter = LogTopicFilter('#')
 
 class Logueur():
-    """ 
-    =======
-    Logueur
-    =======
-
+    """
     Object for logging messages to various output. 
 
     The Logger class allows for managing different outputs for log messages, with each output configured differently. 
@@ -51,8 +74,8 @@ class Logueur():
     of messages by handling the creation of the messages, although you can also define your own LogMessage and log it
     with the classmethod `log`.
 
-    WARNING::The Logueur class is a Singleton, but doesn't implement well this pattern, so a second
-    call to the Logueur.__init__() (ie Logueur()) will errase the previous instance!!
+    .. warning:: The Logueur class is a Singleton, but doesn't implement well this pattern, so a second
+        call to the Logueur.__init__() (ie Logueur()) will errase the previous instance instead of returning it!
     """
 
     _default = ConsoleLogHandler(_default_level,_default_filter,supportColor=False,useStderr=True)
@@ -69,22 +92,23 @@ class Logueur():
                  topicGenerationMethode:str='module',
                  messageFormat:str='[{level}] {topic}\n{body}\n\n',
                  tz:Optional[datetime.timezone]=None) -> None:
-        """ 
-        ======================
-        Constructor of Logueur
-        ======================
+        """
 
-        Configure the Logueur with the different output given in argument.
+        Configure the Logueur with the different output given in argument. You can also specify some
+        default behavior used with the differents logging methods: the topic generation method used
+        when no topic are providied, the format of the message when it isn't specified, and the timezone
+        info to used when generating the message.
 
-        Parameters
-        ----------
-            :param output: The destination of the log's messages. Shall be a 
+        This last one, the time zone info, is only configurable here, as it make more sens to have the same
+        for all log messages.
+
+        :param output: The destination of the log's messages. Shall be a 
             class herited of the BaseLogHandler or a list of object herited from BaseLogHandler in case of 
             mulitple destination.
-            :type output: BaseLogHandler, list[BaseLogHandler]
+        :type output: BaseLogHandler, list[BaseLogHandler]
 
         :param topicGenerationMethod: A string used to determine how to generate the topic of the 
-            message. Can be 'stack' or 'module', see :mod:`Logueur.log_topic`. Default to `'module'`.
+            message. Can be 'stack' or 'module', see :mod:`~py_utils.Logueur.log_topic`. Default to `'module'`.
         :type topicGenerationMethod: str
 
         :param messageFormat: A string to be used to format the message before emitting it to the differents 
@@ -140,14 +164,8 @@ class Logueur():
 
     def register_output(self, output:Union[BaseLogHandler,list[BaseLogHandler]]) -> None:
         """ 
-        =======
-        add_out
-        =======
-
-        Manually add a log output to the logueur.
+        Manually add one ore multiple log output (handlers) to the logueur.
         
-        Parameters
-        ----------
         :param output: The destination of the log's messages. Shall be a class herited
             of the BaseLogHandler or a list of object herited from BaseLogHandler in
             case of mulitple destination.
@@ -170,16 +188,10 @@ class Logueur():
 
     @classmethod
     def log(cls,msg:LogMessage) -> None:
-        """ 
-        ===
-        Log
-        ===
-        
-        Log a specific message. If a instance of Logueur is defined, use its output, else
+        """         
+        Log a specific message. If a instance of Logueur is defined, use its outputs, else
         use the default one.
         
-        Parameters
-        ----------
         :param msg: The message to log.
         :type msg: LogMessage
         """
@@ -199,28 +211,24 @@ class Logueur():
     
     def debug(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
-        =====
-        debug
-        =====
-
         Log a message with a DEBUG level
 
         Construct and log a debug message. If the topic isn't specified, one is
-        constructed with the topicFactory class method of the LogTopic class.
+        constructed with the topicFactory class method of the :class:`~py_utils.Logueur.log_topic.LogTopic` class.
         If the format isn't specified, the default one will be used.
 
-        Parameters
-        ----------
-        :param body str:
-            The text of the message.
-        :param topic str|None:
-            The topic of the message. If no topic are specified, use the topic
+        :param body: The text of the message.
+        :type body: str
+
+        :param topic: The topic of the message. If no topic are specified, use the topic
             factory function of the specified `topicGenerationMethod`. Default
             is `module`.
-        :param format str|None:
-            The format to be used when generating the message. If not specified,
+        :type topic: optional, str
+        
+        :param format: The format to be used when generating the message. If not specified,
             use the format specified in the constructor (`messageFormat`). See
-            :class:`Logueur.log_message.LogMessage`.
+            :class:`~py_utils.Logueur.log_message.LogMessage`
+        :type format: optional, str
         """
 
         # Type Check:
@@ -244,28 +252,24 @@ class Logueur():
         self.log(msg)
     def info(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
-        ====
-        info
-        ====
-
         Log a message with a INFO level
 
         Construct and log an info message. If the topic isn't specified, one is
-        constructed with the topicFactory class method of the LogTopic class.
+        constructed with the topicFactory class method of the :class:`~py_utils.Logueur.log_topic.LogTopic` class.
         If the format isn't specified, the default one will be used.
 
-        Parameters
-        ----------
-        :param body str:
-            The text of the message.
-        :param topic str|None:
-            The topic of the message. If no topic are specified, use the topic
+        :param body: The text of the message.
+        :type body: str
+
+        :param topic: The topic of the message. If no topic are specified, use the topic
             factory function of the specified `topicGenerationMethod`. Default
             is `module`.
-        :param format str|None:
-            The format to be used when generating the message. If not specified,
+        :type topic: optional, str
+
+        :param format: The format to be used when generating the message. If not specified,
             use the format specified in the constructor (`messageFormat`). See
-            :class:`Logueur.log_message.LogMessage`.
+            :class:`~py_utils.Logueur.log_message.LogMessage`.
+        :type format: optional, str
         """
 
         # Type Check:
@@ -289,28 +293,24 @@ class Logueur():
         self.log(msg)
     def warning(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
-        =======
-        warning
-        =======
-        
         Log a message with a WARNING level
 
         Construct and log a warning message. If the topic isn't specified, one is
-        constructed with the topicFactory class method of the LogTopic class.
+        constructed with the topicFactory class method of the :class:`~py_utils.Logueur.log_topic.LogTopic` class.
         If the format isn't specified, the default one will be used.
 
-        Parameters
-        ----------
-        :param body str:
-            The text of the message.
-        :param topic str|None:
-            The topic of the message. If no topic are specified, use the topic
+        :param body: The text of the message.
+        :type body: str
+
+        :param topic: The topic of the message. If no topic are specified, use the topic
             factory function of the specified `topicGenerationMethod`. Default
             is `module`.
-        :param format str|None:
-            The format to be used when generating the message. If not specified,
+        :type topic: optional, str
+
+        :param format: The format to be used when generating the message. If not specified,
             use the format specified in the constructor (`messageFormat`). See
-            :class:`Logueur.log_message.LogMessage`.
+            :class:`~py_utils.Logueur.log_message.LogMessage`.
+        :type format: optional, str
         """
 
         # Type Check:
@@ -334,28 +334,24 @@ class Logueur():
         self.log(msg)
     def error(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
-        =====
-        error
-        =====
-        
         Log a message with a ERROR level
 
         Construct and log an error message. If the topic isn't specified, one is
-        constructed with the topicFactory class method of the LogTopic class.
+        constructed with the topicFactory class method of the :class:`~py_utils.Logueur.log_topic.LogTopic` class.
         If the format isn't specified, the default one will be used.
 
-        Parameters
-        ----------
-        :param body str:
-            The text of the message.
-        :param topic str|None:
-            The topic of the message. If no topic are specified, use the topic
+        :param body: The text of the message.
+        :type body: str
+
+        :param topic: The topic of the message. If no topic are specified, use the topic
             factory function of the specified `topicGenerationMethod`. Default
             is `module`.
-        :param format str|None:
-            The format to be used when generating the message. If not specified,
+        :type topic: optional, str
+
+        :param format: The format to be used when generating the message. If not specified,
             use the format specified in the constructor (`messageFormat`). See
-            :class:`Logueur.log_message.LogMessage`.
+            :class:`~py_utils.Logueur.log_message.LogMessage`.
+        :type format: optional, str
         """
 
         # Type Check:
@@ -379,28 +375,24 @@ class Logueur():
         self.log(msg)
     def fatal(self, body:str, topic:Optional[str]=None, format:Optional[str]=None) -> None:
         """ 
-        =====
-        fatal
-        =====
-        
         Log a message with a FATAL level
 
         Construct and log a fatal message. If the topic isn't specified, one is
-        constructed with the topicFactory class method of the LogTopic class.
+        constructed with the topicFactory class method of the :class:`~py_utils.Logueur.log_topic.LogTopic` class.
         If the format isn't specified, the default one will be used.
 
-        Parameters
-        ----------
-        :param body str:
-            The text of the message.
-        :param topic str|None:
-            The topic of the message. If no topic are specified, use the topic
+        :param body: The text of the message.
+        :type body: str
+
+        :param topic: The topic of the message. If no topic are specified, use the topic
             factory function of the specified `topicGenerationMethod`. Default
             is `module`.
-        :param format str|None:
-            The format to be used when generating the message. If not specified,
+        :type topic: optional, str
+
+        :param format: The format to be used when generating the message. If not specified,
             use the format specified in the constructor (`messageFormat`). See
-            :class:`Logueur.log_message.LogMessage`.
+            :class:`~py_utils.Logueur.log_message.LogMessage`.
+        :type format: optional, str
         """
 
         # Type Check:
@@ -430,29 +422,26 @@ class Logueur():
         """
         Return a function to log message without having to initialise a handler before.
 
-        This returned function mimic the behavior of the `debug`, `info`, `warning`, `error` 
-        and `fatal` methods of the Logueur class, but take the level as an additional argument.
+        This returned function mimic the behavior of the :meth:`~Logueur.debug`, :meth:`~Logueur.info`, 
+        :meth:`~Logueur.warning`, :meth:`~Logueur.error` and :meth:`~Logueur.fatal` methods of the 
+        `Logueur` class, but take the level as an additional argument.
 
         The topic generation methode ('topicGenMethode') argument enable the optionality of the topic
         argument of the returned function. If the topic provided to the returned function is `None`, 
         it will be generated by the methode specified by 'topicGenMethode'.
 
-        Parameters
-        ----------
         :param topicGenMethode: The methode to generate the default topic of the logged messages.
             Default to 'module'.
         :type topicGenMethode: str
 
         :param fmt: The format to use when writting the message. It must contain at least `{body}`.
-            See :class:`Logueur.log_message.LogMessage`. Default to '[{level}] {topic} :: {body}\\n'
+            See :class:`~py_utils.Logueur.log_message.LogMessage`. Default to '[{level}] {topic} :: {body}\\n'
         :type fmt: str
 
         :param tz: The timezone information to use when computing the datetime of the creation
             of the message.
         :type tz: datetime.timezone, optionnal
 
-        Return
-        ------
         :return: A function to log messages.
         :rtype: callable
         """
