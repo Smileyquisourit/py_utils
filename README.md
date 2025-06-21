@@ -51,8 +51,8 @@ To build the documentation, you will need to install a few sphinx package :
 
 You can then build the documentation :
 ``` bash
-(.venv) & cd docs
-(.venv) & make html
+(.venv) $ cd docs
+(.venv) $ make html
 ```
 
 ---
