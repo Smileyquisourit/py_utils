@@ -5,33 +5,26 @@
 # ./py_utils/Logueur/log_topic.py
 
 """ 
+The other way of filtering log message is by using it's topic. A topic is a world or multiple 
+worlds separated by a dot:
 
-**Text from Logueur/log_topic.py**
+    `key1.key2. ... .keyN`
 
-This module implement differents class and functions to generate, represent and filtrate log messages'
-topics. These topics are constitued of different keys separate with a dot and supports a form of regex
-to filtrate them.
+The :class:`LogTopic` class represent such a topic, and implement as well the equality operator (`==`) 
+between 2 instances of :class:`LogTopic` or between one instance and a `str`. It alo implement the 
+:meth:`LogTopic.topicFactory` method to create such a topic from the execution stack, using the inspect
+module.
 
-Classes
--------
-LogTopic():
-    A class representing the topic of a log message, with support for equality test. This class also \
-    implement a class method for generating such a topic from the stack or the module. See
-        - :func:`_generateFromStack`
-        - :func:`_generateFromModule`
+Such a topic can then be filtered using 2 wildchard:
 
-LogTopicFilter():
-    A class representing a filter for log message's topic. It implement a `match` methode using the \
-    following wildcard for matching multiple keys: `'*'` and `'#'`
+- `'*'` will match exactly one key
+- `'#'` will match 0 or more keys.
 
-Function
---------
-_generateFromStack:
-    A function generating a str constitued of the `function` property of each `FrameInfo` of the \
-    execution stack, separated by a dot.
-_generateFromModule:
-    A function generating a str constitued of the module name, classe name and methode name (or just \
-    the function name if it's not a class method), separated by a dot.
+The :class:`LogTopicFilter` is used to filter them, and implement the :meth:`LogTopicFilter.match` method
+for that.
+
+.. note:: The system of topics was greatly inspired by the topics system of RabbitMQ: 
+    https://www.rabbitmq.com/tutorials/tutorial-five-python
 """
 
 import re
@@ -136,14 +129,9 @@ def _generateFromModule(n_frame:int) -> str:
 # ------------------
 
 class LogTopic():
-    """ 
-    ========
-    LogTopic
-    ========
-
-    The topic of a log message. An instance of this class contains the topic of a log 
-    message. This class also implement a static method for generating a log topic from 
-    the execution stack.
+    """
+    The topic of a log message. This class also implement a static method for generating 
+    a log topic from the execution stack.
 
     A topic is a string constitued of different keys, separated with a dot\n 
     `key1.key2. ... .keyN`
@@ -154,13 +142,7 @@ class LogTopic():
     _fromMethode = ["stack","module"]
 
     def __init__(self, topic:str) -> None:
-        """ Constructor of LogTopic.
-
-        A log message topic is like a tag, that can be used to
-        filtrate the different messages.
-
-        Parameters
-        ----------
+        """ 
         :param topic: The topic of the log message.
         :type topic: str
         """
@@ -188,26 +170,22 @@ class LogTopic():
     @classmethod
     def topicFactory(cls, method:Optional[str], n_frame:int=2) -> 'LogTopic':
         """ 
-        =============
-        Topic Factory
-        =============
-        
         Generate a log topic from the execution stack.
 
         This static method use the inspect module to inspect the execution stack. It ignore the 
-        first n_frame given in argument. This function generate the topic by using 2 methods, that 
+        first `n_frame` given in argument. This function generate the topic by using 2 methods, that 
         the user can choose:
 
         - by `stack`: generate the topic by concatening the `function` property of each `FrameInfo` 
             of the execution stack returned by the function `inspect.stack()`. The topic start with the 
             outermost frame's function, and each function name are separated by a dot.
         - by `module`: generate the topic in one of the following form 
-
             - `module_name.class_name.methode_name`
             - `module_name.function_name`
 
-        Parameters
-        ----------
+        .. note:: This method call under the hood a private function to generate the topic, so to ignore
+            the call to this private function and the call to `topicFactory`, the number of frame
+            to ignore should at least be 2.
 
         :param method: The method to use for generating the topic. Must be member of `["stack","module"]`. Default 
             to `module`.
@@ -217,8 +195,6 @@ class LogTopic():
             (`stack` method) or the frame to use (`module` method). Default to `n_frame=2`.
         :type n_frame: int
 
-        Returns
-        -------
         :return: The topic generated.
         :rtype: LogTopic
         """
@@ -248,10 +224,6 @@ class LogTopic():
 
 class LogTopicFilter():
     """ 
-    ==============
-    LogTopicFilter
-    ==============
-
     Filter for log message's topic. An instance of this class enable 
     the user to exclude log message using a form of regexp.
 
@@ -263,8 +235,7 @@ class LogTopicFilter():
     """
 
     def __init__(self, filter:str) -> None:
-        """ Constructor of LogTopicFilter
-
+        """ 
         Construct an instance of LogTopicFilter with the input string `filter`. The pattern used 
         to filtrate the different log messages's topic is then computed by replacing the wildcards 
         by their corresponding expression.
@@ -273,8 +244,6 @@ class LogTopicFilter():
         - `*` replace one key or part of a key
         - `#` replace any number of key, including none.
 
-        Parameters
-        ----------
         :param filter: The string used for constructing the filter.
         :type filter: str
         """
@@ -292,7 +261,7 @@ class LogTopicFilter():
         pattern = pattern.replace('#',r'.*')
         self.pattern = re.compile(pattern)
     def __eq__(self,other:Union['LogTopicFilter',re.Pattern]) -> bool:
-        """ Equality between 2 LogTopic """
+        """ Equality between 2 LogTopicFilter """
         if not isinstance(other, (LogTopicFilter,re.Pattern)):
             return False
         
@@ -303,20 +272,12 @@ class LogTopicFilter():
             return self.pattern == other
 
     def match(self,topic:LogTopic) -> bool:
-        """ 
-        =====
-        match
-        =====
-
+        """
         Check if the given topic match the filter.
 
-        Parameters
-        ----------
         :param topic: The topic to check.
         :type topic: LogTopic
 
-        Return
-        ------
         :return: `True` if the topic match, `False` otherwise.
         :rtype: bool
         """
