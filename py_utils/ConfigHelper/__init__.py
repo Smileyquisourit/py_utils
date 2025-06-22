@@ -5,26 +5,43 @@
 # py_utils/ConfigHelper/__init__.py
 
 """
-    ============
-    ConfigHelper
-    ============
+The :mod:`~py_utils.ConfigHelper.confighelper` module provides a flexible framework for reading and managing
+configuration data. It supports loading configurations from:
 
-    This module provides a interface for differents configuration files. The supported
-    format of the configuration file are INI and JSON.
+- Plain text files (using a custom INI-like format)
+- JSON files (with a specific structure)
+- Python objects (such as :class:`str` or :class:`dict`)
 
-    Objects
-    -------
+Configurations are structured into three hierarchical levels:
 
-    ConfigHelper:
-        The main interface to a configuration. It can read differents configuration files
-        of different format.
+1. The top-level :class:`~py_utils.ConfigHelper.confighelper.ConfigHelper` object, which serves
+   as the main interface.
+2. One or more :class:`~py_utils.ConfigHelper.config_section.ConfigSection` objects, representing
+   configuration sections.
+3. Each section contains multiple :class:`~py_utils.ConfigHelper.config_variable.ConfigVariable`
+   objects, representing individual typed variables.
 
-    ConfigSection:
-        Represent a section of a configuration.
+The configuration can be accessed using *attribute syntax* (e.g., `conf.section.variable`),
+*item syntax* (e.g., `conf['section']['variable']`), or a mix of both. You can also define
+default variables, which are shared across all sections.
 
-    ConfigVariable:
-        Represent one variable of a configuration, and contain it's name, type and value.
+Each variable is defined with a type and a value. Upon creation, the value is automatically
+converted to the specified type. Some python types are already supported, but you can register custom 
+types by providing your own **conversion functions**.
+
+The supported types are:
+
+- :class:`str`, the default one
+- :class:`int`,
+- :class:`float`,
+- :class:`bool`, from value like `True`, `False`, `on`, `off`, ...
+
+Although configuration values are internally represented as :class:`~py_utils.ConfigHelper.config_variable.ConfigVariable`
+instances, accessing them through the configuration object returns the actual value, not the wrapper object.
 """
+
+__all__ = ["ConfigHelper", "ConfigSection", "ConfigVariable"]
+
 
 # Expose main interfaces:
 # -----------------------
