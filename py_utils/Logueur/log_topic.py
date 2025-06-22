@@ -5,23 +5,24 @@
 # ./py_utils/Logueur/log_topic.py
 
 """ 
-The other way of filtering log message is by using it's topic. A topic is a world or multiple 
-worlds separated by a dot:
+A :class:`LogTopic` is a hierarchical label composed of keys separated by dots, e.g., `"system.db.query"`.
+It enables structured filtering and categorization of log messages, inspired by RabbitMQ's topic system.
 
-    `key1.key2. ... .keyN`
-
-The :class:`LogTopic` class represent such a topic, and implement as well the equality operator (`==`) 
-between 2 instances of :class:`LogTopic` or between one instance and a `str`. It alo implement the 
-:meth:`LogTopic.topicFactory` method to create such a topic from the execution stack, using the inspect
-module.
+The :class:`LogTopic` class represent such a topic, created from a string (the topic). It also implement 
+a factory method, :meth:`~LogTopic.topicFactory`, for creating a such a topic from the execution stack. It 
+implement as well the equality operator (`==`) between 2 instances of :class:`LogTopic` or between one instance 
+and a `str`.
 
 Such a topic can then be filtered using 2 wildchard:
 
 - `'*'` will match exactly one key
 - `'#'` will match 0 or more keys.
 
-The :class:`LogTopicFilter` is used to filter them, and implement the :meth:`LogTopicFilter.match` method
+The :class:`LogTopicFilter` is used to filter them, and implement a :meth:`~LogTopicFilter.match` method
 for that.
+
+Topics and filters allow you to finely control which log messages are emitted or handled, depending
+on their origin or context, in addition of their severity level.
 
 .. note:: The system of topics was greatly inspired by the topics system of RabbitMQ: 
     https://www.rabbitmq.com/tutorials/tutorial-five-python

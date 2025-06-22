@@ -4,11 +4,26 @@
 # ---------------------------------------------------------
 # ./py_utils/Logueur/log_message.py
 
-""" 
+r""" 
+In addition to controlling what gets logged (e.g., by severity or topic), this module allows
+you to control how messages are formatted when written to output streams (such as files or console).
+Message formatting is achieved using Python’s built-in :meth:`str.format` method. When formatting,
+a dictionary of the following keys is passed to the format string:
 
-**Text from Logueur/log_message.py**
+- `body` : The main content of the message.
+- `level`: The severity level as a string (e.g., "INFO", "ERROR").
+- `topic`: The topic string associated with the message.
+- `date` : The date of creation (`datetime.date`).
+- `time` : The time of creation (`datetime.time`).
 
-Implement the LogMessage class, encapsulating all of the relevant informations of a log message.
+You may define your own formatting string using these keys, but it **must** at least contain `{body}`,
+or a `ValueError` will be raised.
+
+The default format is the following:
+    "[{level}] {topic}\\n{body}\\n\\n"
+
+.. note:: While you can define a custom format, the presence of `{body}` is mandatory
+   to ensure the core message is displayed.
 """
 
 import datetime
@@ -18,11 +33,7 @@ from .log_level import LogLevel
 from .log_topic import LogTopic
 
 class LogMessage():
-    """ 
-    ==========
-    LogMessage
-    ==========
-
+    r"""
     An instance of this class represent a log message, encapsulating
     all of the relevant information about this peculiar message
 
@@ -30,11 +41,6 @@ class LogMessage():
     - It's topic
     - The actual message to dispay
     - The datetime of it's creation
-
-    An instance of this class also contains the format of the message to
-    be used, the default is
-    
-        `[{level}] {topic}\\n{body}\\n\\n`
 
     """
 
@@ -62,19 +68,18 @@ class LogMessage():
 
     def __init__(self, body:str, level:LogLevel, topic:LogTopic, fmt:Optional[str]=None, 
                  tz:Optional[datetime.timezone]=None) -> None:
-        """ Constructor of LogMessage
-
-        Construct a log message. If no format (`fmt`) is specified, the default one is used:
+        r"""
+        If no format (`fmt`) is specified, the default one is used:
         
-        `[{level}] {topic}\\n{body}\\n\\n`
+            `[{level}] {topic}\\n{body}\\n\\n`
 
-        When creating a log message, the time is computed (using datetime.datetime.now()) and is passed when
-        formating the message. 2 options are passed along with the ones of the default format:
+        When creating a log message, the time is computed (using datetime.datetime.now()) with the
+        optional timezone `tz` arguments. When formatting the messages, 2 options are passed along 
+        with the ones of the default format:
+        
         - 'date' = datetime.datetime.now().date().isoformat()
         - 'time' = datetime.datetime.now().timetz().isoformat()
 
-        parameters
-        ----------
         :param body: The message to print in the log
         :type body: str
 

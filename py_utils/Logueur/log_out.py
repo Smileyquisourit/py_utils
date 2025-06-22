@@ -6,34 +6,25 @@
 
 """
 
-**Text from Logueur/log_out.py**
+The last aspect of the logging system that is configurable is the destination of each log messages. This package
+define for that some *handlers*, wich are responsible for writting the message to the correct output stream, (e.g.
+the console or a file). The filtering logic is also done in each handler, wich allows a different configuraiton
+for each strem output. This can allow you to have a file for messages with a `'system'` topic, while still log
+every message on the console for example, or the inverse, logging every message to a file but only output the 
+messages with a certain topic on the console, this can be usefull when developping a part of an application, and
+only see the logs for this part on the console.
 
-Implement an abstract base class for defining an output for a logger. This abstract class implement how the messages
-are filtered, and define an abstract method that should define how a message is writted.
+As the actual filtering is somewhat private to the logging system, but creating a new handler for a different type
+of output should be easily acheivable by the user. In this end, every handler should herit from an abstract base
+class, that can do the actual filtering, but let the user define how the log are written. This class is the 
+:class:`BaseLogHandler`, where the abstract method :meth:`~BaseLogHandler._write` should be written by the user
+to define how a message is actually written to the output stream.
 
-This module also implement the following log's output:
-- ConsoleLogHandler
-- FileLogHandler
-- RotaryFileLogHandler
+With this being said, there is also 3 handlers already defined in this package:
 
-Classes
--------
-
-BaseLogHandler(ABC):
-    An abstract base class describing the interface for creating a log handler. It also implement some functionalities
-    that should be shared by all loh handler.
-
-ConsoleLogHandler(BaseLogHandler):
-    Implement the interface to write log messages to the standard output (generaly the console). It contains differents
-    options for coloring the message and use the standart error output for `ERROR` and `FATAL` message instead of the standard
-    output.
-
-FileLogHandler(BaseLogHandler):
-    Implement the interface for writing log messages to a file.
-
-RotaryFileLogHandler(BaseLogHandler):
-    Implement the interface for writing log messages to a file, while changing file if the previous one's size exceed a fixed
-    amount, and deleting oldest file on some conditions.
+- A handler for the console, :class:`ConsoleLogHandler`
+- A handler for a file, :class:`FileLogHandler`
+- A handler for a rotaring files system, :class:`RotaryFileLogHandler`
 """
 
 #TODO: add a database output
