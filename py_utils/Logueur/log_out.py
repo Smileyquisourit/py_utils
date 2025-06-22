@@ -5,26 +5,27 @@
 # ./py_utils/Logueur/log_out.py
 
 """
+The final configurable aspect of the logging system is the *destination* of log messages.
+This package provides several **handlers**, which are responsible for writing log messages
+to their appropriate output streams — for example, the console or a file.
 
-The last aspect of the logging system that is configurable is the destination of each log messages. This package
-define for that some *handlers*, wich are responsible for writting the message to the correct output stream, (e.g.
-the console or a file). The filtering logic is also done in each handler, wich allows a different configuraiton
-for each strem output. This can allow you to have a file for messages with a `'system'` topic, while still log
-every message on the console for example, or the inverse, logging every message to a file but only output the 
-messages with a certain topic on the console, this can be usefull when developping a part of an application, and
-only see the logs for this part on the console.
+Each handler also encapsulates the filtering logic, allowing you to define different
+filters for different outputs. For instance, you might choose to log only messages related
+to the `'system'` topic in a dedicated file, while displaying all messages in the console —
+or vice versa. This flexibility is especially useful during development, where you may want
+to monitor logs for a specific part of the application directly in the console.
 
-As the actual filtering is somewhat private to the logging system, but creating a new handler for a different type
-of output should be easily acheivable by the user. In this end, every handler should herit from an abstract base
-class, that can do the actual filtering, but let the user define how the log are written. This class is the 
-:class:`BaseLogHandler`, where the abstract method :meth:`~BaseLogHandler._write` should be written by the user
-to define how a message is actually written to the output stream.
+While the filtering logic is handled internally, **creating a custom handler** for a new type
+of output stream is made easy. To do this, your handler should inherit from the abstract base
+class :class:`BaseLogHandler`. This base class manages filtering, so your custom handler only
+needs to define how messages are actually written by implementing the abstract method
+:meth:`~BaseLogHandler._write`.
 
-With this being said, there is also 3 handlers already defined in this package:
+This package already includes three built-in handlers:
 
-- A handler for the console, :class:`ConsoleLogHandler`
-- A handler for a file, :class:`FileLogHandler`
-- A handler for a rotaring files system, :class:`RotaryFileLogHandler`
+- :class:`ConsoleLogHandler` — for outputting logs to the console
+- :class:`FileLogHandler` — for writing logs to a single file
+- :class:`RotaryFileLogHandler` — for logging with automatic file rotation
 """
 
 #TODO: add a database output
@@ -45,22 +46,15 @@ from .log_message import LogMessage
 # ----------
 
 class BaseLogHandler(ABC):
-    """ 
-    =============
-    BaseLogOutput
-    =============
-
+    """
     Implement the interface that should be provided by a LogOutput class.
     """
 
     def __init__(self,level:LogLevel,filter:LogTopicFilter) -> None:
-        """ Constructor of BaseLogHandler
-
+        """
         An instance of this class represent the interface between the logger
         and the output of the logs.
 
-        Parameters
-        ----------
         :param level: The level used to filtrate log messages.
         :type level: LogLevel
 
@@ -85,10 +79,8 @@ class BaseLogHandler(ABC):
     @abstractmethod
     def _write(self,msg:LogMessage) -> None:
         """ 
-        Abstract method that should implement how the message is emitted.
+        Abstract method that should implement how the message is writted to the output stream.
 
-        Parameters
-        ----------
         :param msg: The message to write.
         :type msg: LogMessage
         """
@@ -100,8 +92,6 @@ class BaseLogHandler(ABC):
         Check if the level of the message is more critical than the level registered, and if the 
         topic match.
 
-        Parameters
-        ----------
         :param msg: The message to check.
         :type msg: LogMessage
 
@@ -124,10 +114,8 @@ class BaseLogHandler(ABC):
         """ Emit a message to the log.
         
         Filtrate the message given in argument and emit it if it passes the filter and has a 
-        correct log level.
+        correct log level. It call under the hood a filtrate method and the `_write` method.
         
-        Parameters
-        ----------
         :param msg: The message to emit.
         :type msg: LogMessage
         """
@@ -152,11 +140,7 @@ class BaseLogHandler(ABC):
 # -------------
 
 class LogDirEntry(object):
-    """
-    ===========
-    LogDirEntry
-    ===========
-    
+    """    
     A sort of subclass of the DirEntry returned by os.scandir(), with an added attribut containing the time 
     of creation determined using the file's name or other means.
 
@@ -172,8 +156,6 @@ class LogDirEntry(object):
         A sort of subclass of the DirEntry returned by os.scandir(), with an added attribut containing the time 
         of creation determined using the file's name or other means.
 
-        Parameters
-        ----------
         :param dirEntry: The DirEntry object that should be sort of subclassed
         :type dirEntry: os.DirEntry
 
@@ -207,11 +189,7 @@ class LogDirEntry(object):
 # -------------
 
 class ConsoleLogHandler(BaseLogHandler):
-    """ 
-    =================
-    ConsoleLogHandler
-    =================
-
+    """
     Represent the interface to write log messages to the console.
 
     An instance of this class can be personalised with two options. The first one is to use color
@@ -231,13 +209,7 @@ class ConsoleLogHandler(BaseLogHandler):
 
     def __init__(self,level:LogLevel,filter:LogTopicFilter,
                  supportColor:bool=True, useStderr:bool=True) -> None:
-        """ Constructor of ConsoleLogHandler
-
-        Initialize an instance of the class, that is responsible to
-        print log message to the console.
-
-        Parameters
-        ----------
+        """
         :param level: The level used for filtrate log messages.
         :type level: LogLevel
 
@@ -311,10 +283,6 @@ class ConsoleLogHandler(BaseLogHandler):
 
 class FileLogHandler(BaseLogHandler):
     """ 
-    ==============
-    FileLogHandler
-    ==============
-
     Represent the interface to write log messages to a file. The filename of the file in wich to 
     write the log is specified in the constructor, altought a default one can be generated. The
     behavior of the instance when a file with the same name already exist is determined by the 
@@ -323,10 +291,7 @@ class FileLogHandler(BaseLogHandler):
     _actions = ["overwrite","overwrite-warn","abort","append","new"]
 
     def __init__(self, level: LogLevel, filter: LogTopicFilter, filename:Optional[str], action:str="abort") -> None:
-        """ Constructor of FileLogHandler
-
-        Implement the interface needed to write log messages to a log file.
-
+        """
         It's possible to indicate the filename to use when creating the log file,
         and the `action` argument specify what to do if a file with the same name
         already exist. If no name are specified, a default filename will be used,
@@ -334,18 +299,17 @@ class FileLogHandler(BaseLogHandler):
 
         When the 'action' flag is used and a filename with the same name already exist,
         the specified action is taken:
+
         - 'overwrite'      -> overwrite the file without warning
         - 'overwrite-warn' -> overwrite the file with a warning
         - 'abort'          -> Abort the creation of the handler (default)
         - 'append'         -> Append next log message to the file, creating it if it doesn't exist
         - 'new'            -> Append '(n)' to the filename to create a new file
 
-        Parameters
-        ----------
         :param level: The level used for filtrate log messages.
         :type level: LogLevel
 
-        :param filter : The topic filtrer used for filtrate log messages.
+        :param filter: The topic filtrer used for filtrate log messages.
         :type filter: LogTopicFilter
 
         :param filename: The name of the log file to create, if no name is supplied, a generic
@@ -402,8 +366,6 @@ class FileLogHandler(BaseLogHandler):
     def _write(self, msg:LogMessage) -> None:
         """ Append a message to the end of the log file.
 
-        Parameters
-        ----------
         :param msg: The message to write.
         :type msg: LogMessage
         """
@@ -423,8 +385,6 @@ class FileLogHandler(BaseLogHandler):
     def _generateLogFilename() -> str:
         """ generate a log filename with ISO 8601 format using UTC timezone 
         
-        Returns
-        -------
         :return: The datetime in ISO 8601 format, using UTC timezone, prepended by `'log_'`
         """
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -439,8 +399,6 @@ class FileLogHandler(BaseLogHandler):
 
         This methods doesn't create the file!!
 
-        Parameters
-        ----------
         :param filename: The filename to check
         :type filename: str
 
@@ -458,13 +416,9 @@ class FileLogHandler(BaseLogHandler):
 
 class RotaryFileLogHandler(BaseLogHandler):
     """ 
-    ====================
-    RotaryFileLogHandler
-    ====================
-
     Represent the interface to write log messages to a set of logfile. A new logfile is generated
-    when the previous one's size exceed a certain size, determined by the user, and only a fixed
-    amount of logfile is keep (determined by the user).
+    when the previous one's size exceed a certain size or if it creation time exceed a certain amount 
+    of time, determined by the user, and only a fixed amount of logfile is keep (determined by the user).
     """
 
     _ISO_FMT_STR_PATTERN = \
@@ -496,13 +450,14 @@ class RotaryFileLogHandler(BaseLogHandler):
     def __init__(self, level: LogLevel, filter: LogTopicFilter, baseFilename:str="log_", directory:str='.',
                  log_ext: str = '', timeSep:str='T', tz:datetime.timezone=datetime.timezone.utc,
                  maxSizeFile:int=10*1024**2, maxLog:int=5, maxLogUnit:str='file'):
-        """ Constructor of RotaryFileLogHandler.
-
+        """
         An instance of RotaryFileLogHandler is an interface to write log messages to a set of files. A new 
-        file is created when the previous one's size exceed the limit specified by `maxSizeFile`. The log's
-        files aren't all conserved, and at some point old files are deleted. This behavior is controlled with
-        the two arguments `maxLog` and `maxLogUnit`, where `maxLog` is a `int` and it is interpreted in different
-        ways depending on the value of `maxLogUnit`:
+        file is created when the previous one's size exceed the limit specified by `maxSizeFile`. 
+        
+        The log's files aren't all conserved, and at some point old files are deleted. This behavior is 
+        controlled with the two arguments `maxLog` and `maxLogUnit`, where `maxLog` is a `int` and it is 
+        interpreted in different ways depending on the value of `maxLogUnit`:
+
         - if `maxLogUnit='file'` : only the `maxLog` latest files are keep.
         - if `maxLogUnit='day'` : only files no older than `maxLog` days are conserved.
         - if `maxLogUnit='week'` : only files no older than `maxLog` weeks are conserved.
@@ -511,12 +466,9 @@ class RotaryFileLogHandler(BaseLogHandler):
         This file clean-up only occurs when a new logfile is requested (du to the size limit), so if you allow a
         large size for a log file, there is no garanty that file older than what you requested are deleted at any time.
 
-        # TODO
-        A new logfile is only requested when their is the need to write a message, so if your application never need to
-        write a message, there will be no logfiles ! This behavior will maybe be customizable in the future.
+        .. note: A new logfile is only requested when their is the need to write a message, so if your application never 
+            need to write a message, there will be no logfiles ! This behavior will maybe be customizable in the future.
 
-        Parameters
-        ----------
         :param level: The level used for filtrate log messages.
         :type level: LogLevel
 
@@ -742,7 +694,7 @@ class RotaryFileLogHandler(BaseLogHandler):
         """ Check if the directory exist, creating if necessary.
 
         This method check if the parent directory exist (will raise an error if not),
-        then check if the directory exist and create it if necessary.
+        then check if the directory exist.
 
         Parameters
         ----------
