@@ -5,9 +5,24 @@
 # ./ConfigHelper/confighelper.py
 
 """
-===================
-Module configHelper
-===================
+
+The :class:`ConfigHelper` class is the main interface of the configuration framework. It allow to change
+the comments indicators for reading configuration in the *modified INI format* and implement methdos to
+read configuration and access it's contents.
+
+The :meth:`~ConfigHelper.read_str` and :meth:`~ConfigHelper.read_ini` methods are used to read configuration
+in the *modified INI format*, with the first one expecting a string containing the configuration, and the
+second expecting a file path in wich to read the configuration. The :meth:`~ConfigHelper.read_dict` and 
+:meth:`~ConfigHelper.read_json` methods are used for the *JSON* format following the same logic.
+
+If you have multiple configuration to read of different format to read, using the correct methods each time
+can become cumbersome, so the :class:`ConfigHelper` implement 2 other methods for reading a configuration,
+trying to find the correct type and using the appropriate method: :meth:`~ConfigHelper.read` and 
+:meth:`~ConfigHelper.read_safe`. Those 2 methods accept either one configuration object or an iterator
+over them. The main difference between them is that the :meth:`~ConfigHelper.read_safe` accept a second
+argument, containing a configuration to read first. When reading the other configuration, an error will be
+raised when encountering a new section or a new variable.
+
 
 This module contains the ConfigHelper class, which represents a configuration. 
 This class provides methods to read a configuration from different formats:
@@ -52,7 +67,7 @@ import warnings
 
 from collections.abc import Iterable
 
-from .config_variable import ConfigVariable
+from .config_variable import ConfigVariable, ConfigConversionError
 from .config_section import ConfigSection, _checkNewSection, _NO_FALLBACK
 from .config_exceptions import ConfigSafeMode_NewSection, ConfigSafeMode_NewVariable, ConfigRead_fileToBig
 
@@ -447,8 +462,7 @@ class ConfigHelper():
         """
         Parse a configuration from a file in the modified INI format.
      
-        Parameters
-        ----------
+
         :param conf_file: Path to the configuration file.
         :type conf_file; str | bytes | os.PathLike | int
 
@@ -873,7 +887,15 @@ class ConfigHelper():
         elif safe and not new_var in self[current_section]:
             raise ConfigSafeMode_NewVariable(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
         
-        self.update_section(current_section, new_var)
+        if safe:
+            try:
+                self[current_section].update_variable(new_var)
+            except ConfigConversionError as e:
+                raise ConfigSafeMode_NewVariable(f"A conversion error was raised when reading a new configuration\n{e}")
+            
+        else:
+            self.update_section(current_section, new_var)
+            
         return current_section
 
     def _parse_dict(self,key:str|None,value:list[dict],safe:bool) -> None:

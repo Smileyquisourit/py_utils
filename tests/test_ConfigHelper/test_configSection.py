@@ -94,6 +94,11 @@ class TestConfigSection(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.section.update_variable("invalid")
 
+        # Mauvais type de variable
+        with self.assertRaises(ConfigConversionError):
+            bad_type = ConfigVariable("var2",str,"not convertible to int")
+            self.section.update_variable(bad_type)
+
     def test_with_defaults(self):
         default_section = ConfigSection("test_section")
         default_section.add_variable( ConfigVariable("var2", int, 999) )

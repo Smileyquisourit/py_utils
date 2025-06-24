@@ -23,7 +23,7 @@ Configurations are structured into three hierarchical levels:
 
 The configuration can be accessed using *attribute syntax* (e.g., `conf.section.variable`),
 *item syntax* (e.g., `conf['section']['variable']`), or a mix of both. You can also define
-default variables, which are shared across all sections.
+default variables, which are accessible by all sections if they don't declare them.
 
 Each variable is defined with a type and a value. Upon creation, the value is automatically
 converted to the specified type. Some python types are already supported, but you can register custom 
@@ -38,6 +38,10 @@ The supported types are:
 
 Although configuration values are internally represented as :class:`~py_utils.ConfigHelper.config_variable.ConfigVariable`
 instances, accessing them through the configuration object returns the actual value, not the wrapper object.
+
+You can read multiple configurations, the last one read will overwrite the values of preceding ones. This facilitates a 
+default configuration that can be overridden by user-provided values, or read potential configuration from different location 
+(like the current directory, the user's home directory, and some system-wide directory).
 """
 
 __all__ = ["ConfigHelper", "ConfigSection", "ConfigVariable"]
@@ -58,6 +62,10 @@ from .config_variable import ConfigVariable
 # - See notes of read method of ConfigHelper. The behavior should be changed in the same time we implement
 #   the interpolation because both need to first parse the configuration, then add the variable.
 # - Add interpolation for INI format configuration (and JSON), with %{SECTION:NAME}s or %{NAME}s
-
+# - When reading a configuration in safe mode, the type of a variable shouldn't be changed, only the value.Add test
+#   for ConfigSection.update_variable and remove them from set_variable
+#   -> set should overwrite the variable, update only update it's value.
+#   -> Checker que créer une variable '_vars' ne fout pas le bordel avec __setatr__
+ 
 # - Add generic type for the config classes, see https://docs.python.org/3/library/stdtypes.html#types-genericalias
 # - see https://en.wikipedia.org/wiki/INI_file for more idea

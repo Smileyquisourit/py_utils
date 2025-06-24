@@ -168,7 +168,7 @@ class ConfigSection(object):
         self._vars[new_var._name] = new_var
     
     def set_variable(self,new_var:ConfigVariable):
-        """ Set a variable. 
+        """ Set a variable, overwritting it if it exist.
         
         Parameter
         ---------
@@ -185,6 +185,8 @@ class ConfigSection(object):
         if not isinstance(new_var,ConfigVariable):
             raise TypeError(f"Cannot add variable of type {type(new_var)} in section {self._name}: {new_var} !!")
         
+        # Overwrite if it exist
+        #object.__setattr__(self._vars,new_var._name, new_var)
         self._vars[new_var._name] = new_var
 
     def del_variable(self,var_name:str):
@@ -224,7 +226,8 @@ class ConfigSection(object):
         if not new_var._name in self._vars.keys():
             raise KeyError(f"The variable {new_var} isn't in the section {self._name}")
         
-        self._vars[new_var._name] = new_var
+        # CHANGED
+        self._vars[new_var._name].value = new_var.value
 
     def with_defaults(self,default_section:'ConfigSection') -> 'ConfigSection':
         """ 
