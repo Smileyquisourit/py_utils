@@ -883,6 +883,16 @@ class ConfigHelper():
             # We are still reading defaults from the config
             if safe and not new_var in self._DEFAULTS:
                 raise ConfigSafeMode_NewVariable(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
+            elif safe:
+                try:
+                    self._DEFAULTS.update_variable(new_var)
+                except ConfigConversionError as e:
+                    raise ConfigSafeMode_NewVariable(f"A conversion error was raised when reading a new configuration:\n{e}")
+                
+            else:
+                self._DEFAULTS.set_variable(new_var)
+            
+            return current_section
             
         elif safe and not new_var in self[current_section]:
             raise ConfigSafeMode_NewVariable(f"New variable '{new_var._name}' in section '{current_section}' while reading config but mode safe is active")
@@ -938,9 +948,24 @@ class ConfigHelper():
                 # We are still reading defaults from the config
                 if safe and not new_var in self._DEFAULTS:
                     raise ConfigSafeMode_NewVariable(f"New default variable '{new_var._name}' while reading config but mode safe is active (knowned defaults: {self.defaults_names})")
+                elif safe:
+                    try:
+                        self._DEFAULTS.update_variable(new_var)
+                    except ConfigConversionError as e:
+                        raise ConfigSafeMode_NewVariable(f"A conversion error was raised when reading a new configuration:\n{e}")
+                
+                else:
+                    self._DEFAULTS.set_variable(new_var)
             
             elif safe and not new_var in self[section]:
                 raise ConfigSafeMode_NewVariable(f"New variable '{new_var._name}' in section '{section}' while reading config but mode safe is active")
+            
+            elif safe:
+                try:
+                    self[section].update_variable(new_var)
+                except ConfigConversionError as e:
+                    raise ConfigSafeMode_NewVariable(f"A conversion error was raised when reading a new configuration:\n{e}")
+                return
             
             self.update_section(section,new_var)
 

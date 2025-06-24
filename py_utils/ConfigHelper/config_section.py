@@ -225,8 +225,8 @@ class ConfigSection(object):
         
         if not new_var._name in self._vars.keys():
             raise KeyError(f"The variable {new_var} isn't in the section {self._name}")
-        
-        # CHANGED
+
+        # Will try a type conversion and may fail        
         self._vars[new_var._name].value = new_var.value
 
     def with_defaults(self,default_section:'ConfigSection') -> 'ConfigSection':
