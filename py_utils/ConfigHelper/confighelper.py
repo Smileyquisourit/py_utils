@@ -301,9 +301,10 @@ class ConfigHelper():
         we first check if it's a valid filename (with the `os.path` module) and then check the file extension 
         to infer the format if it's a file.
 
-        If this method cannot successfully read any configuration object, it will return `False`. Otherwise, 
+        If this method cannot successfully read one configuration object, it will return `False`. Otherwise, 
         it returns `True`. This method can raise a warning when trying to read an invalid configuration object,
-        if the parameter `warn` is set to `True`.
+        if the parameter `warn` is set to `True`. When reading multiple configurations, if one of them raise an
+        error, this method will still read the following ones.
 
         :param conf_obj: A configuration object or an iterable of configuration object to read.
         :type conf_obj: str, dict, or Iterable[str or dict]
@@ -320,7 +321,7 @@ class ConfigHelper():
         .. note:: If the provided path has no extension or an unknown extension but is a valid filename, this method 
             will attempt to parse it as an INI file.
 
-        .. warning:: When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
+        .. warning:: When reading a configuration, an error is raised when a section or a variable isn't correctly formatted,
             but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
             configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
             
@@ -338,8 +339,6 @@ class ConfigHelper():
         The optional `default_conf` is first read in the regular (unsafe) way, to avoid calling the `read` then the
         `read_safe` methods.
     
-        Parameters
-        ----------
         :param conf_obj: A configuration object or an iterable of configuration object to read in safe mode.
         :type conf_obj: str, dict, or Iterable[str or dict]
 
@@ -351,8 +350,6 @@ class ConfigHelper():
             Default to `False`.
         :type warn: bool
 
-        Return
-        ------
         :return: `True` if at least one configuration was successfully read.
         :rtype: bool
     
@@ -364,18 +361,13 @@ class ConfigHelper():
                      Defaults to `False`.
         :type warn: bool
     
-        Raises
-        ------
         :raise TypeError: If parameters are not of the expected types.
         :raise Exception: If a new or unexpected section/variable is found in `conf_obj`.
         
-        Notes
-        -----
-        - This method assumes that `default_conf` is either already loaded, or readable in the same way
-          as `conf_obj` (i.e., same accepted types).
-        - If `default_conf` is `None`, but no configuration was already loaded, an error will be raised on the 
-            first section or variable, effectively making an empty configuration.
-        - If multiple configuration objects are passed, they are read in order. Any violation halts the process.
+        .. note:: This method assumes that `default_conf` is either already loaded, or readable in the same way
+            as `conf_obj` (i.e., same accepted types). If `default_conf` is `None`, but no configuration was 
+            already loaded, an error will be raised on the first section or variable, effectively making an empty 
+            configuration.
         """
 
         success = False
@@ -390,10 +382,7 @@ class ConfigHelper():
         """
         Parse a configuration from a string in the modified INI format.
 
-        Parameters
-        ----------
-        :param conf_str: The configuration content as a single string (with line breaks 
-            separating entries).
+        :param conf_str: The configuration content as a single string (with line breaks separating entries).
         :type conf_str: str
 
         :param safe: If True, raises an error if unknown sections or variables are encountered.
@@ -409,10 +398,9 @@ class ConfigHelper():
     def read_ini(self, conf_file:str, safe:bool=False, max_lines:int=_DEFAULT_MAX_LINE):
         """
         Parse a configuration from a file in the modified INI format.
-     
 
         :param conf_file: Path to the configuration file.
-        :type conf_file; str | bytes | os.PathLike | int
+        :type conf_file: str, bytes, os.PathLike, int
 
         :param safe:  If True, raises an error if unknown sections or variables are encountered.
             If False (default), unknown sections or variables are accepted.
@@ -422,8 +410,6 @@ class ConfigHelper():
             memory usage. Default to 100.
         :type max_lines: int
      
-        Raises
-        ------
         :raise TypeError: If `conf_file` is not a valid file path type.
         :raise FileNotFoundError: If the configuration file does not exist.
         :raise PermissionError: If the configuration file cannot be opened for reading.
@@ -459,17 +445,8 @@ class ConfigHelper():
                 
     def read_dict(self, conf_dict:dict, safe:bool=False) -> None:
         """
-        Parse a configuration from a dictionary in JSON-like format.
+        Parse a configuration from a dictionary in JSON-like format.          
 
-        Notes
-        -----
-        This method expects the dictionary to be structured as:
-          - 'DEFAULTS': list of default variables (optional)
-          - 'SECTIONS': list of sections, each as a dict with a single key (the section name) 
-            and a list of variables.
-
-        Parameters
-        ----------
         :param conf_dict: The configuration as a dictionary, with 'DEFAULTS' and 'SECTIONS' 
             keys.
         :type conf_dict: dict
@@ -478,11 +455,15 @@ class ConfigHelper():
             If False (default), unknown sections or variables are accepted.
         :type safe: bool, optional
 
-        Raises
-        ------
         :raise TypeError: When `conf_dict` is not a dictionary or if sections are incorrectly 
             defined.
         :raise ValueError: When required keys are missing or sections are not properly structured.
+
+        .. note:: This method expects the dictionart to be structured as:
+
+            - 'DEFAULTS': list of default variables (optional)
+            - 'SECTIONS': list of sections, each as a dict with a single key (the section name) 
+                and a list of variables.
         """
         
         # Type check
@@ -517,8 +498,6 @@ class ConfigHelper():
         """
         Parse a configuration from a JSON file.
 
-        Parameters
-        ----------
         :param conf_file: Path to the JSON configuration file.
         :type conf_file: str, bytes, os.PathLike or int
 
@@ -526,8 +505,6 @@ class ConfigHelper():
             If False (default), unknown sections or variables are accepted.
         :type safe: bool
 
-        Raises
-        ------
         :raise TypeError: When `conf_file` is not a valid file path type.
         :raise FileNotFoundError: When the configuration file does not exist.
         :raise PermissionError: When the configuration file cannot be opened for reading.
@@ -560,13 +537,9 @@ class ConfigHelper():
         """
         Add a new section to the configuration if it does not already exist.
 
-        Parameters
-        ----------
         :param new_section: The section to add.
         :type new_section: ConfigSection
 
-        Raises
-        ------
         :raise TypeError: When `new_section` is not a ConfigSection.
         :raise KeyError: When a section with the same name already exists.
         """
@@ -585,13 +558,9 @@ class ConfigHelper():
         """
         Add or replace a section in the configuration.
 
-        Parameters
-        ----------
         :param new_section: The section to add or replace.
         :type new_section: ConfigSection
 
-        Raises
-        ------
         :raise TypeError: When `new_section` is not a ConfigSection.
         """
 
@@ -605,14 +574,10 @@ class ConfigHelper():
         """
         Remove a section from the configuration if it exists.
 
-        Parameters
-        ----------
         :param section_name: The name of the section to remove.
         :type section_name: str
 
-        Notes
-        -----
-        If the section does not exist, no action is taken.
+        .. note:: If the section does not exist, no action is taken.
         """
 
         if not section_name in self._SECTIONS.keys():
@@ -627,16 +592,12 @@ class ConfigHelper():
 
         If `section` is None, the variable is added to the defaults section.
 
-        Parameters
-        ----------
         :param section: The name of the section to update. If None, the variable is added to the defaults.
         :type section: str or None
 
-        :param var : The variable to add or update.
+        :param var: The variable to add or update.
         :type var: ConfigVariable
 
-        Raises
-        ------
         :raise TypeError: When `section` is not a string or None, or if `var` is not a ConfigVariable.
         """
 
@@ -661,13 +622,9 @@ class ConfigHelper():
         """
         Add or update a variable in the defaults section.
 
-        Parameters
-        ----------
         :param var: The variable to add or update in the defaults section.
         :type var: ConfigVariable
 
-        Raises
-        ------
         :raise TypeError: When `var` is not a ConfigVariable.
         """
 
@@ -686,10 +643,8 @@ class ConfigHelper():
         """
         Get a tuple containing (section_name, ConfigSection) pairs.
 
-        Returns
-        -------
         :return: An tuple containing (section_name, ConfigSection) pairs.
-        :rtype: iterator
+        :rtype: tuple
         """
         return tuple(self._SECTIONS.items())
     
@@ -697,10 +652,8 @@ class ConfigHelper():
         """
         Get an tuple containing (variable_name, ConfigVariable) pairs from the defaults section.
 
-        Returns
-        -------
         :return: An tuple tuple (variable_name, ConfigVariable) pairs.
-        :rtype: dictionary view
+        :rtype: tuple
         """
         return tuple(self._DEFAULTS.items())
     
@@ -710,8 +663,6 @@ class ConfigHelper():
         If the value isn't found in the section or in the default value, the fallback (if provieded)
         is returned. When no fallback is provieded and the variable isn't found, return `None`.
 
-        Parameters
-        ----------
         :param section: The name of the section to search in. If None or not found, defaults are used.
         :type section: str or None
 
@@ -722,13 +673,9 @@ class ConfigHelper():
         :type fallback: any
             
 
-        Returns
-        -------
         :return: The value of the variable if found, otherwise the fallback.
         :rtype: any
 
-        Raises
-        ------
         :raise TypeError: If `section` is not str or None, or if `variable` is not str.
         """
 

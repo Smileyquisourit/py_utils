@@ -6,31 +6,39 @@
 
 
 """
-======================
-Module config_variable
-======================
 
-This module provides classes and utility functions for defining and parsing configuration variables 
-from strings and dictionary. 
+The :class:`ConfigVariable` implement one of the core functionality of the configuration framework.
+It provides to conversion functionality, and the parsing of the confguration object.
 
-Concerning the string, it supports a declarative syntax where a configuration line is represented as:
+Altought some type are natively supported, you can easily use some new types by registering a 
+*conversion function*, using the :meth:`~ConfigVariable.register` static method. This decorator
+is used with an argument, wich is the class (or type) you want to convert to. The decorated function
+(the one that implement the conversion) should take only one argument, wich is the value to convert.
+This value is read from a configuration object, and is most generally a string.
 
-    <VariableName>[:<VariableType>]=<VariableValue>
+.. code:: python
 
-Concerning the dictionary, it should contain a 'name' and 'value' key, and optionaly a 'type' key. The 
-'name' value should be a str, the 'value' should also be a string, but type validation isn't enforced yet. 
-As for the 'type', it should be a type or have an attribute '__name__' and be a supported one.
+    from py_utils.ConfigHelper import
+    
+    class NewType():
 
-Where :
-- <VariableName> is the name of the variable, and should be a valid python name;
-- <VariableType> is the type of the variable, this is optional, the default is `str`
-- <VariableValue> is a string representing the variable, and will be constructed with `VariableType(VariableValue)`
+        def __init__(self, value):
+            self.value = value
+
+    @ConfigVariable.register(NewType)
+    def register_new_type(new_value):
+        return NewType(new_value)
 
 The following type are currently supported:
+
 - `str`
 - `int`
 - `float`
 - `bool`
+
+.. note:: The conversion function will be called every time the value of the variable is changed. This 
+    means that when designing a conversion function, you should implement the case where an other instance
+    of the same class is passed as the `value` argument, and not only the case where a :class:`str` is passed.
 """
 
 import re
@@ -126,11 +134,10 @@ class ConfigVariable(object):
 
     def __init__(self, VariableName:str, VariableType:callable, value:any):
         """
-        Concrete implementation of a configuration variable. The conversion of the value is done in the 
-        constructor, and will raise an error if it isn't valid.
+        The conversion of the value is done in the constructor, and will raise an error if it 
+        isn't valid.
  
-        Parameters
-        ----------
+
         :param VariableName: Name of the configuration variable.
         :type VariableName: str
 
@@ -140,12 +147,17 @@ class ConfigVariable(object):
         :param value: The initial value to assign, which will be validated and converted.
         :type value: any
 
-        Raises
-        ------
+
         :raise ValueError: If the type is not supported.
-        :raise TypeError: If the value cannot be converted to the wanted type.
+        :raise TypeError: When the variable's name isn't a string
+        :raise ConfigConversionError: If the value cannot be converted to the wanted type.
         """
+
+        # Type check
+        if not isinstance(VariableName,str):
+            raise TypeError(f"Can't initialise a ConfigVariable when the name isn't a str, instead I've received a {type(VariableName)}!")
  
+        # Initialisation
         self._name = VariableName
         self._type = self._validate_type(VariableType)
         self._value = self._validate_value(value)
@@ -232,20 +244,15 @@ class ConfigVariable(object):
     @staticmethod
     def constructFromString(line:str) -> 'ConfigVariable':
         """
-        Parses a configuration line and constructs a ConfigVariable object.
+        Parses a configuration line and constructs a ConfigVariable object. The format
+        of the line is expected to be the modified INI format.
  
-        Parameters
-        ----------
         :param line: The configuration string to parse (e.g., 'port:int=8080').
         :type line: str
  
-        Return
-        ------
         :return: An instance representing the parsed configuration.
         :rtype: ConfigVariable
- 
-        Raises
-        ------
+
         :raise ValueError: If parsing fails due to incorrect syntax or unsupported type.
         """
  
@@ -272,19 +279,13 @@ class ConfigVariable(object):
         - `'type'` -> the type of the variable
         - `'value'` -> the value of the variable
         
-        Parameter
-        ---------
         :param var_dict: The dict in wich to extract the name, type, and value of the 
             wanted variable.
         :type var_dict: dict[str:str]
 
-        Return
-        ------
         :return: An instance representing the parsed configuration.
         :rtype: ConfigVariable
  
-        Raises
-        ------
         :raise ValueError: If parsing fails due to incorrect syntax or unsupported type.
         """
 
@@ -310,8 +311,6 @@ class ConfigVariable(object):
         with `varType.__name__`, while the decorated function will be registered under 
         `varType`
 
-        Parameter
-        ---------
         :param varType: The new type to register.
         :type varType: type
         """
@@ -320,7 +319,7 @@ class ConfigVariable(object):
 
             # Wrap user func
             @functools.wraps(func)
-            def wrapper(new_value,cVarName,cVarType):
+            def wrapper(new_value:str,cVarName:str,cVarType:any):
                 try:
                     value = func(new_value)
                 except Exception as e:

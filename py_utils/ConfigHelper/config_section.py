@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 # ---------------------------------------------------------
-# The ConfigSection base class
+# The ConfigSection class
 # ---------------------------------------------------------
 # py_utils/ConfigHelper/config_section.py
 
 """
-=====================
-Module config_section
-=====================
+The `ConfigSection` class, that represent one section of a configuration file, is one of 
+the core class of the configuration framework. It implement the default functionality, with
+the :meth:`~ConfigSection.with_defaults` method, and it allow to access the value of a configuration
+variable instead of the instance of :class:`~py_utils.ConfigHelper.config_variable.ConfigVariable`.
 
-This module contain the `ConfigSection` class, that represent one section of a 
-configuration file. A ConfigSection allows to access variables like an dictionary
-or with attribut access, and provide a method to add default to the section. There
-is also some method to add or modifie some variables to the section.
-
+Like the :class:`~py_utils.ConfigHelper.confighelper.ConfigHelper` class, the :class:`ConfigSection`
+allows you to access variables like attributs or items. It also implement some methods to manage
+variable.
 """ 
 
 import re
@@ -44,15 +43,12 @@ class ConfigSection(object):
         return instance
 
     def __init__(self, name:str):
-        """ Creator of ConfigSection.
-
+        """
         A instance of this class represent a section of a configuration file, and allow
         to access variable like a dictionary or with attribut access. When accessing a
         variable like that, only the value of the config variable is returned, not the
-        actual ConfigVariable instance.
+        actual :class:`ConfigVariable` instance.
 
-        Parameter
-        ---------
         :param name: The name of the section.
         :type name: str
         """
@@ -145,14 +141,10 @@ class ConfigSection(object):
     def add_variable(self,new_var:ConfigVariable):
         """ 
         Add a variable only if it isn't already in the section. 
-        
-        Parameter
-        ---------
+
         :param new_var: The variable to add.
         :type new_var: ConfigVariable
 
-        Raise
-        -----
         :raise TypeError: When `new_var` isn't a ConfigVariable.
         :raise KeyError: When the variable already exist in the section.
         """
@@ -169,14 +161,10 @@ class ConfigSection(object):
     
     def set_variable(self,new_var:ConfigVariable):
         """ Set a variable, overwritting it if it exist.
-        
-        Parameter
-        ---------
+
         :param new_var: The variable to add.
         :type new_var: ConfigVariable
 
-        Raise
-        -----
         :raise TypeError: When `new_var` isn't a ConfigVariable.
         :raise KeyError: When the variable already exist in the section.
         """
@@ -192,8 +180,6 @@ class ConfigSection(object):
     def del_variable(self,var_name:str):
         """ Delete a variable of the section, if it exist 
         
-        Parameter
-        ---------
         :param var_name: The name of the variable to delete.
         :param type: str
         """
@@ -208,14 +194,10 @@ class ConfigSection(object):
         """ 
         Set a new variable only if it exist. Raise an error
         if the variable isn't in the section.
-        
-        Parameter
-        ---------
+
         :param new_var: The variable to update.
         :type new_var: ConfigVariable
 
-        Raise
-        -----
         :raise TypeError: When `new_var` isn't a ConfigVariable.
         """
 
@@ -237,19 +219,13 @@ class ConfigSection(object):
         accessing a section. The new ConfigSection has the same name as this instance,
         but some default variable are added (only) if they didn't exist in this instance.
 
-        Parameter
-        ---------
         :param default_section: An other ConfigSection with default variables.
         :type default_section: ConfigSection
 
-        Return
-        ------
         :return: A ConfigSection contening all the variable of this section, and the one of the
             default section if they doesn't exist in this one.
         :rtype: ConfigSection
 
-        Raise
-        -----
         :raise TypeError: When `default_section` isn't a ConfigSection.
         """
 
@@ -291,21 +267,15 @@ class ConfigSection(object):
         a KeyError if the variable isn't in the config and no fallback are provided,
         or return the fallback if there is one.
 
-        Parameters
-        ----------
         :param key: The name of the variable to retreive.
         :type key: str
 
         :param fallback: The fallback value to return if the key isn't present.
         :type fallback: any
 
-        Return
-        ------
         :return: The value of the variable.
         :rtype: any
 
-        Raise
-        -----
         :raise TypeError: When the key isn't a string.
         :raise KeyError: When the variable isn't in the section, and no fallback are provided.
         """
