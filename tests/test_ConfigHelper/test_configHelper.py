@@ -360,7 +360,7 @@ var2 = val2
         test = self.conf._read("varName : str = varValue",False,False)
         self.assertTrue(test)
 
-        # Uncorrect config:
+        # Uncorrect config (type that don't exist):
         test = self.conf._read("varName : varType = varValue",False,False)
         self.assertFalse(test)
         #

@@ -20,44 +20,9 @@ can become cumbersome, so the :class:`ConfigHelper` implement 2 other methods fo
 trying to find the correct type and using the appropriate method: :meth:`~ConfigHelper.read` and 
 :meth:`~ConfigHelper.read_safe`. Those 2 methods accept either one configuration object or an iterator
 over them. The main difference between them is that the :meth:`~ConfigHelper.read_safe` accept a second
-argument, containing a configuration to read first. When reading the other configuration, an error will be
+argument, containing a configuration to read first. When reading the other configurations, an error will be
 raised when encountering a new section or a new variable.
 
-
-This module contains the ConfigHelper class, which represents a configuration. 
-This class provides methods to read a configuration from different formats:
-
-- A modified INI format
-- A JSON format
-
-Modified INI format
---------------------
-
-A plain-text format in which each line follows the form:
-
-    <VariableName>[:<VariableType>]=<VariableValue>
-
-Here, the VariableType is optional (default is `str`). Arbitrary whitespace 
-between elements is allowed, but the order cannot be changed. Comments explaining 
-the variables can be added, but they must be on separate lines. By default, comment 
-delimiters are `';'` and `'#'`, although these can be changed.
-
-JSON format
-------------
-
-A JSON format where the top-level dictionary must contain two keys: 'DEFAULTS' and 'SECTIONS'.
-
-- 'DEFAULTS' should be a dictionary representing a section containing all default variables 
-  shared by all sections.
-- 'SECTIONS' should be a list of dictionaries, each representing a section.
-
-A section dictionary should contain a single key (the section name) and its value should 
-be a list of dictionaries, each representing a variable.
-
-A variable dictionary must contain at least the keys 'name' and 'value'. Optionally, it can 
-also contain a 'type' key. The 'name' must be a string, the 'value' should also be a string 
-(currently, type validation is not enforced). The 'type' can be a supported type name as a 
-string (e.g., 'int', 'float', and 'bool'), or a class (which must have a '__name__' attribute).
 """
 
 
@@ -126,11 +91,8 @@ class ConfigHelper():
         maximum size allowed is 20 Ko, but this value can be changed. To avoid size checking, you
         can specified the `file_maxSize` to `-1` or any negative number.
 
-        Parameters
-        ----------
         :param comments_indicators: The character(s) used to identify comment lines in the 
-            INI format. By default, comments are identified using ';' and '#'. This parameter 
-            allows customization of the comment indicators to fit different needs.
+            INI format. By default, comments are identified using ';' and '#'.
         :type comments_indicators: None | str | list[str], optional
 
         :param file_maxSize: The maximum size allowed for reading a file (either INI or JSON). If the file
@@ -240,8 +202,6 @@ class ConfigHelper():
         This method implement the logic to select the correct method to read different configurations
         objects.
 
-        Parameters
-        ----------
         :param conf_obj: A configuration object or an iterable of configuration object to read.
         :type conf_obj: str, dict, or Iterable[str or dict]
 
@@ -251,13 +211,9 @@ class ConfigHelper():
         :param warn: A flag to raise a warning when an error is raised when reading a configuration.
         :type warn: bool
 
-        Return
-        ------
         :return: `True` if at least one configuration was successfully read.
         :rtype: bool
 
-        Raise
-        -----
         :raise TypeError: When a parameter isn't of the expected type.
 
         Notes
@@ -283,53 +239,53 @@ class ConfigHelper():
         
         # Read configuration object:
         # --------------------------
+        _success = True
         for i, conf in enumerate(conf_obj):
             
             # Dict case
             if isinstance(conf,dict):
                 try: 
                     self.read_dict(conf,safe)
-                    return True
                 except Exception as e:
                     if warn:
                         msg = f"\nIn configuration at index {i}: " + str(e)
                         warnings.warn(msg)
-                        return False
+                    _success = False
+                continue
                         
 
             # String case
             if not os.path.isfile(conf):
                 try:
                     self.read_str(conf,safe)
-                    return True
                 except Exception as e:
                     if warn:
                         msg = f"\nIn configuration at index {i}: " + str(e)
                         warnings.warn(msg)
-                        return False
+                    _success = False
+                continue
 
             # File case
             _, ext = os.path.splitext(conf)
             if ext == '.json':
                 try:
                     self.read_json(conf,safe)
-                    return True
                 except Exception as e:
                     if warn:
                         msg = f"\nIn configuration at index {i}: " + str(e)
                         warnings.warn(msg)
-                        return False
+                    _success = False
+                continue
             else:
                 try:
                     self.read_ini(conf,safe)
-                    return True
                 except Exception as e:
                     if warn:
                         msg = f"\nIn configuration at index {i}: " + str(e)
                         warnings.warn(msg)
-                        return False
+                    _success = False
         
-        return False
+        return _success
         #
     def read(self, conf_obj:str|dict|Iterable[str|dict], warn:bool=False) -> bool:
         """
@@ -349,8 +305,6 @@ class ConfigHelper():
         it returns `True`. This method can raise a warning when trying to read an invalid configuration object,
         if the parameter `warn` is set to `True`.
 
-        Parameters
-        ----------
         :param conf_obj: A configuration object or an iterable of configuration object to read.
         :type conf_obj: str, dict, or Iterable[str or dict]
 
@@ -358,21 +312,15 @@ class ConfigHelper():
             Default to `False`.
         :type warn: bool
 
-        Return
-        ------
         :return: `True` if at least one configuration was successfully read.
         :rtype: bool
 
-        Raise
-        -----
         :raise TypeError: When a parameter isn't of the expected type.
 
-        Notes
-        ----- 
-
-        - If the provided path has no extension or an unknown extension but is a valid filename, this method 
+        .. note:: If the provided path has no extension or an unknown extension but is a valid filename, this method 
             will attempt to parse it as an INI file.
-        - When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
+
+        .. warning:: When reading a configuration, an error is raised when a asection or a variable isn't correctly formatted,
             but the previous sections and/or variables sucessfully read are added to the configuration object, so a 
             configuration can be only partially read !! This behavior isn't great, and will be changed in the future.
             
