@@ -5,5 +5,5 @@ description = "Different helper class and module"
 authors = [{ name = "Thibaut Derains", email = "thibaut.derains@gmail.com" }]
 requires-python = ">= 3.9"
 
-[tool.setuptools]
-packages = ["py_utils"]
+[tool.setuptools.packages.find]
+where = ["."]
