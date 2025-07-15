@@ -478,10 +478,20 @@ class Logueur():
                 in the `get_loggingFunction` will be used to generate it.
             """
 
+            # Type check
+            if not isinstance(level,(str,int,LogLevel)):
+                raise TypeError(f"The 'level' should be a 'str', 'int', or 'LogLevel', instead I've received a {type(level)}")
+            if topic and not isinstance(topic,str):
+                raise ValueError(f"The topic of the message must be a str, instead I've received a '{type(topic)}'")
+            elif topic and isinstance(topic,str):
+                topic = LogTopic(topic)
+            else:
+                topic = LogTopic.topicFactory(topicGenMethode, 3)
+
             msg = LogMessage(
                 body=body,
                 level=LogLevel.factory(level),
-                topic=LogTopic(topic),
+                topic=topic,
                 fmt=fmt,
                 tz=tz
             )

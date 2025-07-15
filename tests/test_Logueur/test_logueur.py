@@ -101,6 +101,14 @@ class test_Logueur(unittest.TestCase):
             log("ERROR", "body","topic")
             self.assertEqual("[ERROR] topic :: body\n",mockSTDERR.getvalue())
         
+        # Try without topic:
+        def mockTopicFactory(*args,**kwargs):
+            return LogTopic("_topic_")
+        with unittest.mock.patch('sys.stderr', io.StringIO()) as mockSTDERR:
+            with unittest.mock.patch('py_utils.Logueur.log_topic.LogTopic.topicFactory',mockTopicFactory):
+                log("ERROR","body")
+                self.assertEqual('[ERROR] _topic_ :: body\n',mockSTDERR.getvalue())
+        
         #
     def test_correctRedirectingOfTheDefaultLog(self):
 
