@@ -14,7 +14,7 @@ practice and gain hands-on experience with building and structuring a complete P
 
 - And a configuration utility, inspired by the ConfigHelper module of Python's standard library.
 
-Check out the :doc:`usage` section for further information.
+Check out the :doc:`usage` section for further information, or the :doc:`demo` section to see a complete exemple.
 
 .. note::
 
@@ -29,3 +29,4 @@ Check out the :doc:`usage` section for further information.
    usage
    logueur
    confighelper
+   demo
