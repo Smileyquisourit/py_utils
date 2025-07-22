@@ -14,3 +14,7 @@ sandBox*.py
 sandBox*.cfg
 sandBox*.json
 sandBoxLog/
+
+# Files from demo:
+demo/words.db
+*.bkp

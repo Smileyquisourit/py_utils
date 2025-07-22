@@ -31,4 +31,5 @@ Feel free to explore, adapt, and run the demo to see how everything fits togethe
    :caption: Contents
 
    demo/0-initial-idea
+   demo/1-database
 
