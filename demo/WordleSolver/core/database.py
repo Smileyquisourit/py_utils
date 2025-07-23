@@ -194,9 +194,3 @@ class WordleDatabase():
     def commit(self):
         self._connection.commit()
 
-
-def create_from_url():
-    pass
-def create_from_file(file) -> WordleDatabase:
-    with open(file,'r') as words_file:
-        return WordleDatabase.create('words.db',words_file)

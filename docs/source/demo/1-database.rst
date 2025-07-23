@@ -5,8 +5,8 @@
 Presentation
 ------------
 
-The first fundamental building block of this application is its database.  
-Since Wordle uses a large list of words, we need an efficient way to store and filter them using various criteria.  
+The first fundamental building block of this application is its database.
+Since Wordle uses a large list of words, we need an efficient way to store and filter them using various criteria.
 For this purpose, we will use an SQLite3 database with two tables:
 
 - The first table contains the 26 letters of the English alphabet, each associated with a unique ID.
@@ -18,9 +18,9 @@ For this purpose, we will use an SQLite3 database with two tables:
 
 Using IDs to represent letters is slightly more complex than simply storing the characters directly.
 However, normalizing the tables this way — by using `INTEGER` keys instead of text — makes the database more robust and consistent.
-For the same reason, we can declare the IDs linking each letter of the word to the ID of the letter as a FOREIGN KEY.   
-This adds a small amount of complexity but should have no significant impact on performance for a database of this size, and will 
-allow better integration of future improvements.
+For the same reason, we declare the IDs linking each letter of the word to the letter ID as `FOREIGN KEY`.   
+This adds a small amount of complexity but should have no significant impact on performance for a database of this size and will allow 
+better integration of future improvements.
 
 .. image:: /_static/demo/database-1.png
    :alt: The database scheme
@@ -37,7 +37,7 @@ The following command creates the *letters* table:
         letter CHAR(1) UNIQUE NOT NULL
     );
 
-For the *words* table, the command is slightly more complex due to the use of `FOREIGN KEY`:
+For the *words* table, the command is slightly more complex due to the use of `FOREIGN KEY` constraints:
 
 .. code-block:: sql
 
@@ -57,7 +57,7 @@ For the *words* table, the command is slightly more complex due to the use of `F
     );
 
 With Python’s :mod:`sqlite3` module, foreign keys are not enforced by default, so
-you must explicitly enable them. Do this immediately after opening the database:
+you must explicitly enable them immediately after opening the database:
 
 .. code-block:: sql
 
@@ -77,9 +77,9 @@ In Python, you can do this with the following instructions:
     # Get the cursor for normal operations
     cursor = connection.cursor()
 
-Before continuing to the creation of the database, we will need to create the *WordleSolver/core* directory,
-with two files: an *__init__.py* and a *database.py* file. As before, the *__init__.py* can be empty, it's only
-here so that python consider the *core* directory as a package. The *database.py* script will contain the 
+Before continuing with the creation of the database, we need to create the *WordleSolver/core* directory,
+with two files: an *__init__.py* and a *database.py* file. As before, the *__init__.py* can be empty; it only
+exists so that Python treats the core directory as a package. The *database.py* script will contain the
 :class:`WordleDatabase` class. ::
 
     ├── demo/
@@ -96,17 +96,18 @@ Creating the database
 ---------------------
 
 Before implementing the :class:`WordleDatabase`, we need to decide which part of the code is responsible
-for creating the database, and which part interacts with it.
-I believe the creation logic should not be handled by the constructor of the class that interacts with the database.
-The constructor should open an existing database, not create one.
-However, since the two tasks are closely related, the creation logic should still belong to the same class, but as a `classmethod`.
+for creating the database and which part interacts with it.
+The creation logic should not be handled by the constructor of the class that interacts with the database,
+it should only open an existing database.
+However, since these two tasks are closely related, the creation logic should still belong to the same class, 
+but as a `classmethod`.
 
 We will also separate the creation logic from the logic that populates the database,
-since the populate logic can be reused to update the database later.  
-Our `create` `classmethod` will only create the database file and the two tables, and populate only the *letters* table,
-since it is fixed (only 26 letters).  
-So we can hardcode this set in our module. Let’s define it at the start of the *core/database.py* script, and import the 
-:mod:`sqlite3` module:
+since the populate logic can be reused later to update the database.  
+Our :meth:`create` `classmethod` will only create the database file and the two tables, and populate only the 
+*letters* table, since it is fixed (only 26 letters).  
+So we can hardcode this set in our module. Let’s define it at the start of the *core/database.py* script, and 
+import the :mod:`sqlite3` module:
 
 .. code-block:: python
 
@@ -114,8 +115,8 @@ So we can hardcode this set in our module. Let’s define it at the start of the
 
     _ALL_LETTERS = ('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z')
 
-Next, we implement the *classmethod* responsible for creating the database.
-For now, we will ignore the constructor and focus only on this creation method.
+Next, we implement the classmethod responsible for creating the database. For now, we will ignore the constructor 
+and focus only on this creation method.
 
 .. code-block:: python
 
@@ -130,10 +131,11 @@ For now, we will ignore the constructor and focus only on this creation method.
             pass
 
 Before doing anything, we need a way to log what we’re doing. Since this is a module and not the final application,
-we don’t know if there’s an existing logging system or what its logging level is.
-For this, the :class:`~py_utils.logueur.Logueur` class provides a class method to get a logging function
-that either uses the application’s logging system or defaults to printing messages to the console, filtered at the `WARNING` level.
-We will soon implement the logging system for the *CLI* application, but for now we’ll use the default logger.
+we don’t know if there’s an existing logging system or what its logging level is. The :class:`~py_utils.logueur.Logueur` 
+class provides a class method to get a logging function that either uses the application’s logging system or defaults 
+to printing messages to the console, filtered at the `WARNING` level. We will soon implement the logging system for 
+the *CLI* application, but for now we’ll use the default logger.
+
 Don’t forget to import the :class:`~py_utils.logueur.Logueur` class!
 
 .. code-block:: python
@@ -149,7 +151,7 @@ Don’t forget to import the :class:`~py_utils.logueur.Logueur` class!
             # Get logging function
             _log = Logueur.get_loggingFunc()
 
-We are now ready to log our first message ! We will check if the file already exists using the :mod:`os` module
+We are now ready to log our first message! We will check if the file already exists using the :mod:`os` module
 and then, depending on the result, log an appropriate message.
 If the file exists, log a `FATAL` message and raise an error — we don’t want to overwrite an existing file.
 Otherwise, log a `DEBUG` message to indicate that we are creating the database.
@@ -176,9 +178,8 @@ Otherwise, log a `DEBUG` message to indicate that we are creating the database.
                 raise FileExistsError(f"The file '{filename}' already exist, aborting.")
             _log("DEBUG",f"Creating database '{filename}' !")
 
-We can now create the database. For this, we just need to open a connection and the :mod:`sqlite3` will create the
-associated file. Once the database is opened, we can create the letters table and populate it. This is 
-quite straigth forward:
+Next, we create the database by opening a connection, :mod:`sqlite3` will create the file automatically.
+Then we create the *letters* table and populate it. This is straightforward:
 
 .. code-block:: python
 
@@ -196,9 +197,7 @@ quite straigth forward:
             for letter in _ALL_LETTERS:
                 cursor.execute("INSERT INTO letters (letter) VALUES (?);", (letter,))
 
-Then, we just need to create the words table without populating it, commit our change to the database, and
-close it. As the newly created database will certainly be used right after it's creation, we can return it
-to the user by calling it's :meth:`__init__` method:
+Then we create the *words* table, commit the changes, close the connection, and return an instance of the class:
 
 .. code-block:: python
 
@@ -226,8 +225,7 @@ to the user by calling it's :meth:`__init__` method:
 
             return cls(filename)
 
-We can test our :meth:`create` method by modifying the *WordleSolver/__main__.py* file to execute it. For
-this, we will first need to import our module, and then simply call our method in the :func:`main` function:
+To test our :meth:`create` method, modify the *WordleSolver/__main__.py* file as follows:
 
 .. code-block:: python
 
@@ -237,14 +235,14 @@ this, we will first need to import our module, and then simply call our method i
 
         db = WordleDatabase.create('words.db')
 
-The first time you run the script (ie by calling the module or the *cli* command), you shouldn't see anything
-on the terminal, as the only message that we log is a `'DEBUG'` message, and the default logueur filtrate the 
-messages with the `'WARNING'` level. You should only see a new *words.db* file in your explorer. But if you
-run the demo a second time, you should see the :class:`FileExistsError` and the following message just before::
+The first time you run the script (via the module or the *cli* command), you shouldn’t see anything in the 
+terminal, since the only message logged is `DEBUG` and the default logger filters for `WARNING`. You should, 
+however, see the *words.db* file appear in your explorer. If you run it again, you’ll see a 
+:class:`FileExistsError` and the following message:
 
     [FATAL] database.WordleDatabase.create :: The file 'words.db' already exist, aborting.
 
-If you want to see the `"DEBUG"` message, you need to define a :class:`Logueur` instance with a `"DEBUG"`
+If you want to see the `DEBUG` message, you need to define a :class:`Logueur` instance with a `"DEBUG"`
 level in the *__main__.py* script. You can do so with the :func:`~py_utils/Logueur/ConsoleLogueurFactory`
 quite simply:
 
@@ -259,15 +257,14 @@ quite simply:
         log = ConsoleLogueurFactory("DEBUG")
         db = WordleDatabase.create('words.db')
 
-You can then re-run the application to see it, and see the different option of the 
-:func:`~py_utils/Logueur/ConsoleLogueurFactory` function. Don't forget to delete the *words.db* before !
+Re-run the application to see the log in action — just remember to delete *words.db* first!
 
 
 Initialisation of the :class:`WordleDatabase`
 ---------------------------------------------
 
-Now that we have created a database, we can start to implement our :class:`WordleDatabase`. We can implement
-the constructor, that we ignored the first time, and start by creating a `_log` attribute:
+Now that we have created the database, we can start implementing our :class:`WordleDatabase`. Let’s implement the 
+constructor, which we skipped the first time, and start by creating a `_log` attribute:
 
 .. code-block:: python
 
@@ -282,9 +279,9 @@ the constructor, that we ignored the first time, and start by creating a `_log` 
             self._log = Logueur.get_loggingFunc()
 
 
-The first thing to do is to check the file of the database. For that, we can use the :mod:`os.path` module,
-and raise an error if the file isn't found. Once this check is passed, we can open the database and activate
-the foreign keys.
+The first thing to do is check whether the database file exists. For that, we can use the :mod:`os.path` module 
+and raise an error if the file isn’t found. Once this check passes, we can open the database and activate foreign 
+keys:
 
 .. code-block:: python
 
@@ -304,10 +301,9 @@ the foreign keys.
             self._connection.execute("PRAGMA foreign_keys = ON")
             self._cursor = self._connection.cursor()
 
-We will rely on the `FOREIGN KEY` to ensure the coherence of our data, so it's a good idea to check
-now that the `foreign_keys` option is correctly activated. If the option isn't activated, it will not 
-break immediatly our application, but it can cause it to malfunction in the future, so we can log a 
-warning:
+We rely on `FOREIGN KEY` constraints to ensure the consistency of our data, so it’s a good idea to check that the 
+foreign keys option is correctly activated. If it’s not, it won’t immediately break our application, but it could 
+cause malfunctions in the future, so we’ll log a warning:
 
 .. code-block:: python
 
@@ -324,10 +320,9 @@ warning:
                         "The application could malfunction or generate inaccurate answers in the future."
                     )
 
-As we open the database in the constructor, we will need to close it in the destructor to be sure to
-free the associated ressources. If there is still a pending transaction when closing the database, ie
-a *execute* command that isn't *commited*, we will log a warning and *rollback* the transaction, then
-close the database properly.
+Since we open the database in the constructor, we need to close it in the destructor to free the associated resources. 
+If there is still a pending transaction when closing the database (i.e., an *execute* command that hasn’t been committed), 
+we’ll log a warning, rollback the transaction, and then close the database properly:
 
 .. code-block:: python
 
@@ -348,28 +343,27 @@ close the database properly.
             self._cursor.close()
             self._connection.close()
 
-You can try different scenario in the :func:`main()` function of the *WordleSolver/__main__.py* script to see the
-logs in action. Don't hesitate to modify the :class:`WordleDatabase` by commenting certain lines out, like the 24
-of *database.py*, to simulate the case where the foreign keys wern't activated !
+You can try different scenarios in the :func:`main()` function of the *WordleSolver/__main__.py* script to see the logs in 
+action. Don’t hesitate to modify the :class:`WordleDatabase` by commenting out certain lines, like line 24
+of *database.py*, to simulate the case where foreign keys aren’t activated!
 
 .. note::
-    You can also change the :func:`main()` function to use the constructor of the database rather than the 
-    :meth:`WordleDatabase.create()` ! 
+    You can also change the :func:`main()` function to use the database constructor directly instead of the
+    :meth:`WordleDatabase.create()` method! 
 
 
 Basics Functionalities of the database
 --------------------------------------
 
-Before implementing the method to update and populate the database, we will implement a helper method to
-map a letter to it's id, and two handy dunder methods. To map a letter to it's id, we just need to use the
-following sql command:
+Before implementing methods to update and populate the database, we’ll implement a helper method to map a letter to its ID, 
+and two useful dunder methods. To map a letter to its ID, we just need to use the following SQL command:
 
 .. code-block:: sql
 
     SELECT id FROM letters WHERE letter = (?);
 
-Where the `(?)` will be replaced by the wanted letter. As we only added lower characters into the *letters*
-table, we can lower the given letter before asking the database:
+Since we only added lowercase characters to the letters table, we’ll convert the given letter to lowercase before querying 
+the database:
 
 .. code-block:: python
 
@@ -385,9 +379,8 @@ table, we can lower the given letter before asking the database:
 
             return id[0] if id else None
 
-The two dunder methods that may comme in handy in the future are the :meth:`__len__` and :meth:`__contain__`
-methods. The first one will implement how we can compute the lenght of the :class:`WordleDatabase`, and the
-second one will implement what should return the following python statement:
+The two dunder methods that may come in handy are :meth:`__len__` and :meth:`__contains__`. The first will compute the length 
+of the :class:`WordleDatabase` class, and the second will implement what should happen with the following Python statement:
 
 .. code-block:: python
 
@@ -395,8 +388,8 @@ second one will implement what should return the following python statement:
     >> some_variable in database
     # return True if some_variable is in the database
 
-For the lenght of the database, we will consider the number of words in the *words* table, and the second
-will check if a word is in the *words* database. The implementation for those two methods are the following:
+For the length, we’ll count the number of words in the *words* table. The :meth:`__contains__` method will check if a word exists 
+in the *words* table. Here’s how to implement both:
 
 .. code-block:: python
 
@@ -416,7 +409,7 @@ will check if a word is in the *words* database. The implementation for those tw
 
             return True if self._cursor.fetchone() else False
 
-You can test those 2 methods by calling them in the *__main__.py* script:
+You can test these methods in the *__main__.py* script:
 
 .. code-block:: python
 
@@ -428,23 +421,22 @@ You can test those 2 methods by calling them in the *__main__.py* script:
         print(f"Word 'stare' in database: {'stare' in db}")
 
 .. note::
-    The :func:`len` should only return 0 and the :code:`'stare' in db` should always return :code:`False`
+    The :func:`len` should only return 0 and the check :code:`'stare' in db` should always return :code:`False`
     for now !
 
 Main functionalities of the database
 ------------------------------------
 
-Now that most of the methods that represent the database, we can start adding word to it. For
-that, we will create an *update* method that will take a list of words, and try to append it to
-the table.
+Now that we have most of the core methods, we can start adding words to the database. For that, we’ll create an 
+*update* method that takes a list of words and tries to append them to the table.
 
-For each word in the list, we will first strip it (remove blank caracter) and lower it. We will then
-check the size of the word, and get the ids of each letter in the word. If there isn't 5 letters or
-if one letter isn't found in the *letters* table, a warning will be logged and the word will be ignored.
+For each word in the list, we’ll first strip it (remove blank characters) and convert it to lowercase. Then we’ll 
+check its length and get the IDs of each letter. If the word doesn’t have 5 letters or contains an unknown letter, 
+we’ll log a warning and ignore it.
 
 .. note::
-    To make thing more clear, we will use the :class:`Iterable` class of the :mod:`typing`
-    for the type hint of the list of words, so we will need to import it.
+    To clarify things, we’ll use the :class:`Iterable` class from the :mod:`typing` module for the type hint, 
+    so we’ll need to import it.
 
 .. code-block:: python
 
@@ -493,8 +485,8 @@ if one letter isn't found in the *letters* table, a warning will be logged and t
             self._log("DEBUG", f"Added {n_word} words in the database !")
             self._connection.commit()
 
-To test this :meth:`update()` method, we can define a list of words and try to add them into our database. To do so,
-we can modify our *__main__.py* script in the following way:
+To test this :meth:`update()` method, define a list of words and try adding them to your database. 
+Modify your *__main__.py* script like this:
 
 .. code-block:: python
 
@@ -525,12 +517,10 @@ we can modify our *__main__.py* script in the following way:
         print(f"Word 'stare' in database after update: {'stare' in db}")
 
 
-
-The last functionalities to implement is an interface to execute some sql commands on the database. There is multiple
-complexe ways to do this in a safe maner, but this is not the goal of this example, so we will settle to a simpler 
-*unsafe* method. We will simply expose a :meth:`execute` method that will take an SQL command and some parameters,
-and some methods to fetch the values and commit the transaction. If there is an sql error while executing the commmand, 
-we will catch it to log the error then re-throw it.
+The last functionality to implement is an interface to execute custom SQL commands. There are more robust ways to 
+do this safely, but for this example, we’ll provide a simple (unsafe) method. We’ll expose an  :meth:`execute` 
+method to take an SQL command and parameters, and add methods to fetch values and commit transactions. If there’s 
+an SQL error while executing the command, we’ll log it and re-raise the error:
 
 .. code-block:: python
 
@@ -562,3 +552,51 @@ we will catch it to log the error then re-throw it.
 
         def commit(self):
             self._connection.commit()
+
+You can test these by adding a word and fetching it afterwards. Try different words, or test an invalid one, like 
+a six-letter word or a duplicate, to see the different log messages:
+
+.. code-block:: python
+
+    def main():
+
+        db = WordleDatabase('words.db')
+
+        print(f"Lenght of the database: {len(db)}")
+        print(f"Word 'stare' in database: {'stare' in db}")
+
+        words_list = [
+            "rossa",
+            "jetty",
+            "wizzo",
+            "cuppa",
+            "cohoe",
+            "gurks",
+            "squad",
+            "beisa",
+            "shrug",
+            "stare"
+        ]
+
+        print("Updating the database...")
+        db.update(words_list)
+
+        print(f"Lenght of the database after update: {len(db)}")
+        print(f"Word 'stare' in database after update: {'stare' in db}")
+
+        db.execute(
+            "INSERT INTO words (word, letter1_id, letter2_id, letter3_id, letter4_id, letter5_id) VALUES (?, ?, ?, ?, ?, ?);",
+            (
+                'float', 
+                db.get_letter_id('f'), 
+                db.get_letter_id('l'), 
+                db.get_letter_id('o'),
+                db.get_letter_id('a'),
+                db.get_letter_id('t')
+            )
+        )
+        db.execute(
+            "SELECT word IN words WHERE letter1_id = (?);",
+            (db.get_letter_id('f'),)
+        )
+        print(f"Word starting with 'f': {db.fetch('one')}")
