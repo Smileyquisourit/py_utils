@@ -1,44 +1,40 @@
 from py_utils.Logueur import ConsoleLogueurFactory
 import os
 
-from .core.database import WordleDatabase, create_from_file
+from .core.database import WordleDatabase
+from .core.search import WordleTarget
+
+import argparse
 
 def main():
 
     log = ConsoleLogueurFactory("DEBUG")
 
-    if not os.path.exists("words.db"):
-        db = WordleDatabase.create("words.db")
-    else:
-        db = WordleDatabase('words.db')
+    target = WordleTarget(third='u')
+    target.yellow_letters['a'] = [1,3]
+    target.yellow_letters['b'] = [5]
+    target.grey_letters = ['d','p','j']
     
-    with open("../words.txt",'r') as f:
-        words = list()
-        for word in f:
-            words.append(word)
-            print(word)
-
-            if len(words) >= 10:
-                break
-    words.append("123456")
-    words.append("some$")
+    log.info(str(target))
     
-    db.update(words)
-
-    print("Get letter id")
-    print(f"  j = {db.get_letter_id("j")}")
-    print(f"  $ = {db.get_letter_id("$")}")
-
-    print("Check len and contain")
-    print(f"  len = {len(db)}")
-    print(f"  {words[1].strip()} in db = {words[1] in db}")
-
-    print("execute")
-    db.execute("SELECT word FROM words WHERE letter1_id = ?",(db.get_letter_id('j'),))
-    print(db.fetch('one'))
-    
-    print("destructing db:")
-    del db
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    subparser = parser.add_subparsers()
+
+    db_parser = subparser.add_parser("db")
+    db_parser.add_argument('file',type=str)
+
+    search_parser = subparser.add_parser("search")
+    search_parser.add_argument('word')
+    search_parser.add_argument('-m','--match',nargs='*')
+    search_parser.add_argument('-v','--invert-match')
+
+    args = parser.parse_args()
+    print(f"received arg: {args.word}")
+    print(f"received arg -m: {args.match}")
+    print(f"received arg -v: {args.invert_match}")
+
+
     main()
