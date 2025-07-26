@@ -50,6 +50,7 @@ class WordleDatabase():
             )
             self._connection.rollback()
 
+        self._log("DEBUG","Closing database.")
         self._cursor.close()
         self._connection.close()
     
@@ -176,7 +177,7 @@ class WordleDatabase():
         except sql.Error as e:
             self._log("ERROR",
                 f"Error when trying to execute the following sql command:" + \
-                f"\ncmd='{sql_cmd}'; params={sql_parameters}\n{e.sqlite_errorname}[{e.sqlite_errorcode}] :: {e}"
+                f"\ncmd='{sql_cmd}'; params={sql_parameters}\n[{type(e).__name__}] :: {e}"
             )
             raise e
         

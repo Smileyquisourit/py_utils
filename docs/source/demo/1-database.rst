@@ -340,6 +340,7 @@ we’ll log a warning, rollback the transaction, and then close the database pro
                 )
                 self._connection.rollback()
 
+            self._log("DEBUG","Closing database.")
             self._cursor.close()
             self._connection.close()
 
@@ -535,7 +536,7 @@ an SQL error while executing the command, we’ll log it and re-raise the error:
             except sql.Error as e:
                 self._log("ERROR",
                     f"Error when trying to execute the following sql command:" + \
-                    f"\ncmd='{sql_cmd}'; params={sql_parameters}\n{e.sqlite_errorname}[{e.sqlite_errorcode}] :: {e}"
+                    f"\ncmd='{sql_cmd}'; params={sql_parameters}\n[{type(e).__name__}] :: {e}"
                 )
                 raise e
 
