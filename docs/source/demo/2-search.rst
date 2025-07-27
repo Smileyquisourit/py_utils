@@ -16,7 +16,7 @@ Once you’ve created the *search.py* script, your project should look something
     │   │   │   ├── search.py
     │   │   │   └── __init__.py
     │   │   ├── __init__.py
-    │   │   ├── __main__.py
+    │   │   └── __main__.py
 
 
 Target of a search

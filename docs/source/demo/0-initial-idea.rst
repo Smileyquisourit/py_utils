@@ -71,13 +71,17 @@ This is the architecture of the example ::
     │   ├── pyproject.toml
     │   ├── WordleSolver/
     │   │   ├── cli/
+    │   │   │   ├── parser.py
+    │   │   │   ├── database.py
+    │   │   │   ├── search.py
+    │   │   │   └── __init__.py
     │   │   ├── core/
     │   │   │   ├── database.py
     │   │   │   ├── search.py
     │   │   │   └── __init__.py
     │   │   ├── gui/
     │   │   ├── __init__.py
-    │   │   ├── __main__.py
+    │   │   └── __main__.py
 
 To test the application while we're developing it, we will use a *CLI* approch, that we will later transform
 to make our *CLI* application. To do so, we need the *pyproject.toml* file so that *pip* can recongnize it
@@ -88,7 +92,7 @@ the following files to work the demo ::
     │   ├── pyproject.toml
     │   ├── WordleSolver/
     │   │   ├── __init__.py
-    │   │   ├── __main__.py
+    │   │   └── __main__.py
 
 The *pyproject.toml* file is a modern configuration file used to define build system requirements and project 
 metadata for Python projects. It was introduced by PEP 518 and extended by other PEPs (like PEP 621 for 

@@ -89,7 +89,7 @@ exists so that Python treats the core directory as a package. The *database.py* 
     │   │   │   ├── database.py
     │   │   │   └── __init__.py
     │   │   ├── __init__.py
-    │   │   ├── __main__.py
+    │   │   └── __main__.py
 
 
 Creating the database
@@ -474,13 +474,15 @@ we’ll log a warning and ignore it.
                     continue
 
                 # Add word in the database
+                if self.__contains__(word):
+                    continue
                 try:
                     self._cursor.execute(
                         "INSERT INTO words (word, letter1_id, letter2_id, letter3_id, letter4_id, letter5_id) VALUES (?, ?, ?, ?, ?, ?)",
                         (word, ids[0], ids[1], ids[2], ids[3], ids[4])
                     )
                     n_word += 1
-                except sql.IntegrityError as e:
+                except Exception as e:
                     self._log("WARNING",f"Error when trying to add word '{word}':\n{e}\nIgnoring it.")
 
             self._log("DEBUG", f"Added {n_word} words in the database !")
