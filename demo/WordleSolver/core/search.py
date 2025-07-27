@@ -102,16 +102,24 @@ class WordleSearch():
 
         # Green pass
         self._green_pass(target.green_letters)
-        if self.__len__() == 0:
+        if (_len := self.__len__()) == 0:
             self._log("DEBUG","No word found after first pass (green letters), returning early")
             return tuple()
-        self._log("DEBUG", f"Found {self.__len__()} words after first pass (green letters).")
+        self._log("DEBUG", f"Found {_len} words after first pass (green letters).")
 
         # Yellow pass
-        # TODO
+        self._yellow_pass(target.yellow_letters, target.green_letters)
+        if (_len := self.__len__()) == 0:
+            self._log("DEBUG","No word found after second pass (yellow letters), returning early")
+            return tuple()
+        self._log("DEBUG", f"Found {self.__len__()} words after second pass (yellow letters).")
 
         # Grey pass
-        # TODO
+        self._grey_pass(target.grey_letters, target.green_letters, target.yellow_letters)
+        if (_len := self.__len__()) == 0:
+            self._log("DEBUG","No word found after third pass (grey letters), returning early")
+            return tuple()
+        self._log("DEBUG", f"Found {self.__len__()} words after third pass (grey letters).")
 
         # Process return
         if nb_words <= 0:
@@ -155,3 +163,83 @@ class WordleSearch():
         self._db.execute(sql_cmd,sql_arg)
         self._db.commit()
 
+    def _yellow_pass(self, yellow_letters:dict, green_letters:list[str]):
+
+        # Check tmp table
+        if not self._tmp_table_name:
+            self._log("ERROR", "No temporary table, aborting")
+            return
+        
+        if len(yellow_letters.keys()) == 0:
+            self._log("DEBUG", "No yellow letters, returning early.")
+            return
+        
+        # Iterate over the yellow letters:
+        for letter, poss in yellow_letters.items():
+
+            # Filtrate based on occurence
+            l_id = self._db.get_letter_id(letter)
+            max_occ = 1 + sum( [1 for gl in green_letters if letter == gl] )
+            self._db.execute(
+                f"DELETE FROM {self._tmp_table_name} WHERE (" + \
+                    "(CASE WHEN letter1_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter2_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter3_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter4_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter5_id = ? THEN 1 ELSE 0 END) < ?" + \
+                ")",
+                (l_id, l_id, l_id, l_id, l_id, max_occ)
+            )
+
+            # Filtrate based on position
+            for p in poss:
+                self._db.execute(f"DELETE FROM {self._tmp_table_name} WHERE letter{p}_id = ?", (l_id,))
+
+            self._db.commit()
+
+    def _grey_pass(self, grey_letters:list[str], green_letters:list[str], yellow_letters:dict):
+
+        # Check tmp table
+        if not self._tmp_table_name:
+            self._log("ERROR", "No temporary table, aborting")
+            return
+        
+        if len(grey_letters) == 0:
+            self._log("DEBUG", "No grey letters, returning early.")
+            return
+        
+        # Iterate over the grey letters:
+        for letter, poss in grey_letters.items():
+
+            # Filtrate based on occurence
+            l_id = self._db.get_letter_id(letter)
+            max_occ = 1 + sum( [1 for gl in green_letters if letter == gl] ) + sum( [1 for yl in yellow_letters.keys() if letter == yl] ) 
+            self._db.execute(
+                f"DELETE FROM {self._tmp_table_name} WHERE (" + \
+                    "(CASE WHEN letter1_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter2_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter3_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter4_id = ? THEN 1 ELSE 0 END) +" + \
+                    "(CASE WHEN letter5_id = ? THEN 1 ELSE 0 END) > ?" + \
+                ")",
+                (l_id, l_id, l_id, l_id, l_id, max_occ)
+            )
+
+            self._db.commit()
+
+
+
+def oneshot_search(db_file:str, target:WordleTarget, nb_words:int=-1) -> tuple:
+
+    # Construct database and search:
+    log = Logueur.get_loggingFunc()
+    db = WordleDatabase(db_file)
+    search = WordleSearch(db)
+
+    # Conduct the search
+    log("DEBUG",f"Quick search of {nb_words if nb_words > 0 else 'INF'} words for:\n{target}")
+    rslt = search.search(target,nb_words)
+
+    # Clean up and exist
+    search.clean()
+    return rslt

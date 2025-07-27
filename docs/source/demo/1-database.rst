@@ -601,3 +601,9 @@ a six-letter word or a duplicate, to see the different log messages:
             (db.get_letter_id('f'),)
         )
         print(f"Word starting with 'f': {db.fetch('one')}")
+
+What is next
+------------
+
+Now that we have implemented the interface for the database, we can start to implement the
+search functionalities !

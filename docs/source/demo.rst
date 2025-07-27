@@ -33,4 +33,5 @@ Feel free to explore, adapt, and run the demo to see how everything fits togethe
    demo/0-initial-idea
    demo/1-database
    demo/2-search
+   demo/3-cli
 

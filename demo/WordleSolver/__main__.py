@@ -13,6 +13,7 @@ def main():
     target = WordleTarget(first='c')
     target.yellow_letters['a'] = [1,3]
     target.yellow_letters['p'] = [5]
+    target.yellow_letters['c'] = [2]
     target.grey_letters = ['d','j']
     
     log.info(str(target))
@@ -26,7 +27,7 @@ def main():
     # db.commit()
     ## ======= END TMP =======
     search = WordleSearch(db)
-    search._green_pass(target.green_letters)
+    search.search(target)
 
     print(f"len of search after _green_pass: {len(search)}")
 
