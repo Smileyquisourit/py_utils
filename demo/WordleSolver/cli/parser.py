@@ -43,3 +43,29 @@ db_parser.add_argument(
 # =============
 
 search_parser = subparsers.add_parser("search", help="Search related operations.")
+
+search_parser.add_argument(
+    "database",
+    help="The database in wich to search."
+)
+search_parser.add_argument(
+    "green_letters",
+    help="The word to search. Replace the letters you don't know by '*'"
+)
+search_parser.add_argument(
+    "-c", "--contain",
+    help="Letter that is in the word, but you only know the position where it isn't. " + \
+        "Give in the following format: 'l [1,2] m [2,3,5]', where l and m are the letter and the number in parentheses are the position to exclude.",
+    default="", nargs="*", dest="yellow_letters"
+)
+search_parser.add_argument(
+    "-v","--invert-match",
+    help="Letters to exclude.",
+    default="", dest="grey_letters"
+)
+search_parser.add_argument(
+    "-n", "--nb-word",
+    help="The number of word to return.",
+    default=15, type=int, dest="n_word" 
+)
+

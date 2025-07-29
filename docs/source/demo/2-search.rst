@@ -473,7 +473,7 @@ any green or yellow uses of that letter.
                 return
 
             # Iterate over the grey letters:
-            for letter, poss in grey_letters.items():
+            for letter in grey_letters:
 
                 # Filtrate based on occurence
                 l_id = self._db.get_letter_id(letter)

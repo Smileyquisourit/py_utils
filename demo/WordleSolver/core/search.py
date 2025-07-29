@@ -209,11 +209,13 @@ class WordleSearch():
             return
         
         # Iterate over the grey letters:
-        for letter, poss in grey_letters.items():
+        for letter in grey_letters:
 
             # Filtrate based on occurence
             l_id = self._db.get_letter_id(letter)
-            max_occ = 1 + sum( [1 for gl in green_letters if letter == gl] ) + sum( [1 for yl in yellow_letters.keys() if letter == yl] ) 
+            max_occ = sum( [1 for gl in green_letters if letter == gl] )
+            if letter in yellow_letters.keys():
+                max_occ += 1
             self._db.execute(
                 f"DELETE FROM {self._tmp_table_name} WHERE (" + \
                     "(CASE WHEN letter1_id = ? THEN 1 ELSE 0 END) +" + \
@@ -239,7 +241,8 @@ def oneshot_search(db_file:str, target:WordleTarget, nb_words:int=-1) -> tuple:
     # Conduct the search
     log("DEBUG",f"Quick search of {nb_words if nb_words > 0 else 'INF'} words for:\n{target}")
     rslt = search.search(target,nb_words)
+    len_rslt = len(search)
 
     # Clean up and exist
     search.clean()
-    return rslt
+    return rslt, len_rslt

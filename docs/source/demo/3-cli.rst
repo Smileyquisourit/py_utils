@@ -238,3 +238,44 @@ Now, if you try to rerun the last command (don't forget to delete the words.db f
 a more user-friendly output for the messages logged using the :class:`Logueur`. By running the same command
 but with the :code:`INFO` level (the default level), you should only see a user-friendly output !
 
+
+Search Operation
+----------------
+
+If you remember correctly from the implementation of the search functionalities, we have implemented a
+:func:`oneshot_search` to conduct a search. We will use this function for the CLI. 
+
+To implement the search functionality, we will follow the exact same step as for the database operations.
+First we need to add the :code:`search_parser` subparser in the *parser.py* script:
+
+.. code-block:: python
+
+    # Search Parser
+    # =============
+    
+    search_parser = subparsers.add_parser("search", help="Search related operations.")
+    
+    search_parser.add_argument(
+        "database",
+        help="The database in wich to search."
+    )
+    search_parser.add_argument(
+        "word",
+        help="The word to search. Replace the letter you don't know by '*'"
+    )
+    search_parser.add_argument(
+        "-c", "--contain",
+        help="Letter that is in the word, but you only know the position where it isn't. " + \
+            "Give in the following format: 'l [1,2] m [2,3,5]', where l and m are the letter and the number in parentheses are the position to exclude.",
+        default="", nargs="*"
+    )
+    search_parser.add_argument(
+        "-v","--invert-match",
+        help="Letters to exclude.",
+        default="", dest="exclude"
+    )
+    search_parser.add_argument(
+        "-n", "--nb-word",
+        help="The number of word to return.",
+        default=15, type=int, dest="n_word" 
+    )
