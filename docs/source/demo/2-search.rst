@@ -280,7 +280,7 @@ The name will be created using the :mod:`uuid` module of python, so don't forget
             if self.__len__() == 0:
                 self._log("DEBUG","No word found after first pass (green letters), returning early")
                 return tuple()
-            self._log("DEBUG", f"Found {self.__len__()} words after first pass (green letters).")
+            self._log("DEBUG", f"Found {_len} words after first pass (green letters).")
 
             ...
 
@@ -369,10 +369,10 @@ We can now implement this logic accordingly in the `WordleSearch` class:
 
             # Yellow pass
             self._yellow_pass(target.yellow_letters, target.green_letters)
-            if self.__len__() == 0:
+            if (_len := self.__len__()) == 0:
                 self._log("DEBUG","No word found after second pass (yellow letters), returning early")
                 return tuple()
-            self._log("DEBUG", f"Found {self.__len__()} words after second pass (yellow letters).")
+            self._log("DEBUG", f"Found {_len} words after second pass (yellow letters).")
 
             ...
 
@@ -454,10 +454,10 @@ any green or yellow uses of that letter.
 
             # Grey pass
             self._yellow_pass(target.grey_letters, target.green_letters, target.yellow_letters)
-            if self.__len__() == 0:
+            if (_len := self.__len__()) == 0:
                 self._log("DEBUG","No word found after third pass (grey letters), returning early")
                 return tuple()
-            self._log("DEBUG", f"Found {self.__len__()} words after third pass (grey letters).")
+            self._log("DEBUG", f"Found {_len} words after third pass (grey letters).")
 
             ...
 
@@ -477,7 +477,9 @@ any green or yellow uses of that letter.
 
                 # Filtrate based on occurence
                 l_id = self._db.get_letter_id(letter)
-                max_occ = 1 + sum( [1 for gl in green_letters if letter == gl] ) + sum( [1 for yl in yellow_letters.keys() if letter == yl] ) 
+                max_occ = sum( [1 for gl in green_letters if letter == gl] )
+                if letter in yellow_letters.keys():
+                    max_occ += 1
                 self._db.execute(
                     f"DELETE FROM {self._tmp_table_name} WHERE (" + \
                         "(CASE WHEN letter1_id = ? THEN 1 ELSE 0 END) +" + \
@@ -516,10 +518,11 @@ Fortunately, this is easy to implement:
         # Conduct the search
         log("DEBUG",f"Quick search of {nb_words if nb_words > 0 else 'INF'} words for:\n{target}")
         rslt = search.search(target,nb_words)
+        len_rslt = len(search)
 
         # Clean up and exist
         search.clean()
-        return rslt
+        return rslt, len_rslt
 
 What is next
 ------------

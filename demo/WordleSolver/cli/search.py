@@ -2,7 +2,7 @@ import re
 
 from py_utils.Logueur import Logueur
 
-from ..core.database import WordleDatabase, _ALL_LETTERS
+from ..core.database import _ALL_LETTERS
 from ..core.search import WordleTarget, oneshot_search
 
 def main_search(
@@ -15,11 +15,11 @@ def main_search(
 
     log.debug(
         "Starting search action using the following args:\n" + \
-        f"  - db_filename = {db_filename}\n" + \
+        f"  - {db_filename=}\n" + \
         f"  - {green_letters=}\n" + \
         f"  - {yellow_letters=}\n" + \
         f"  - {grey_letters=}\n" + \
-        f"  - n_word = {n_word}" 
+        f"  - {n_word=}" 
     )
 
     # Reconstruct target using green letters
@@ -75,7 +75,7 @@ def main_search(
         log.debug("No grey letters")
 
     # Search
-    log.info(f"Starting to search {n_word if n_word > 0 else 'all'} words correpsonding to the following target:\n{target}")
+    log.info(f"Starting to search {n_word if n_word > 0 else 'all'} words correpsonding to the following target:\n{target}\n")
     words, tot_words = oneshot_search(db_filename,target,n_word)
     log.info(f"Found {tot_words} correpsonding to the target!")
     

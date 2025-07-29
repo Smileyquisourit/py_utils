@@ -112,14 +112,14 @@ class WordleSearch():
         if (_len := self.__len__()) == 0:
             self._log("DEBUG","No word found after second pass (yellow letters), returning early")
             return tuple()
-        self._log("DEBUG", f"Found {self.__len__()} words after second pass (yellow letters).")
+        self._log("DEBUG", f"Found {_len} words after second pass (yellow letters).")
 
         # Grey pass
         self._grey_pass(target.grey_letters, target.green_letters, target.yellow_letters)
         if (_len := self.__len__()) == 0:
             self._log("DEBUG","No word found after third pass (grey letters), returning early")
             return tuple()
-        self._log("DEBUG", f"Found {self.__len__()} words after third pass (grey letters).")
+        self._log("DEBUG", f"Found {_len} words after third pass (grey letters).")
 
         # Process return
         if nb_words <= 0:

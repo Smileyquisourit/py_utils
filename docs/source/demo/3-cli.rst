@@ -161,9 +161,9 @@ Now we’ll implement the actual logic for creating or updating the database in 
 
         log.debug(
             "Starting database action using the following args:\n" + \
-            f"  - action = {action}\n"+ \
-            f"  - filename = {filename}\n"+ \
-            f"  - url = {url}\n"
+            f"  - {action=}\n"+ \
+            f"  - {filename=}\n"+ \
+            f"  - {url=}\n"
         )
 
         if action == "init":
@@ -252,30 +252,161 @@ First we need to add the :code:`search_parser` subparser in the *parser.py* scri
 
     # Search Parser
     # =============
-    
+
     search_parser = subparsers.add_parser("search", help="Search related operations.")
-    
+
     search_parser.add_argument(
         "database",
         help="The database in wich to search."
     )
     search_parser.add_argument(
-        "word",
+        "green_letters",
         help="The word to search. Replace the letter you don't know by '*'"
     )
     search_parser.add_argument(
         "-c", "--contain",
         help="Letter that is in the word, but you only know the position where it isn't. " + \
             "Give in the following format: 'l [1,2] m [2,3,5]', where l and m are the letter and the number in parentheses are the position to exclude.",
-        default="", nargs="*"
+        default="", nargs="*", dest="yellow_letters"
     )
     search_parser.add_argument(
         "-v","--invert-match",
         help="Letters to exclude.",
-        default="", dest="exclude"
+        default="", dest="grey_letters"
     )
     search_parser.add_argument(
         "-n", "--nb-word",
         help="The number of word to return.",
         default=15, type=int, dest="n_word" 
     )
+
+Now we can implement the main search function in the *WordleSolver/cli/search.py* script. This function will interpret 
+the user-provided arguments, reconstruct the :class:`WordleTarget`, and print the search results:
+
+.. code-block:: python
+
+    import re
+
+    from py_utils.Logueur import Logueur    
+
+    from ..core.database import _ALL_LETTERS
+    from ..core.search import WordleTarget, oneshot_search  
+
+    def main_search(
+            log:Logueur, db_filename:str, 
+            green_letters:str,
+            yellow_letters: str = "",
+            grey_letters: str = "",
+            n_word:int = 15
+        ):  
+
+        log.debug(
+            "Starting search action using the following args:\n" + \
+            f"  - {db_filename=}\n" + \
+            f"  - {green_letters=}\n" + \
+            f"  - {yellow_letters=}\n" + \
+            f"  - {grey_letters=}\n" + \
+            f"  - {n_word=}" 
+        )   
+
+        # Reconstruct target using green letters
+        word = green_letters.lower()
+        if len(word) != 5:
+            log.error(f"There should only be 5 green letters, but I've received {len(word)} !")
+        target = WordleTarget(
+            first  = word[0] if word[0] in _ALL_LETTERS else None,
+            second = word[1] if word[1] in _ALL_LETTERS else None,
+            third  = word[2] if word[2] in _ALL_LETTERS else None,
+            fourth = word[3] if word[3] in _ALL_LETTERS else None,
+            fifth  = word[4] if word[4] in _ALL_LETTERS else None
+        )   
+
+        # Reconstruct yellow letters
+        if yellow_letters != "":
+            pattern = re.compile(r'(?P<letter>[a-zA-Z])\s*\[(?P<pos>[\d,]+?)\]')
+            matches = pattern.findall(" ".join(yellow_letters))
+            if len(matches) == 0:
+                log.warning("No yellow letters found, there is an error in the format !")
+            for letter, pos in matches:
+
+                # Check letter
+                if not letter in _ALL_LETTERS:
+                    log.warning(f"Unrecognized letter {letter} in option contain ('{letter} [{pos}].\nIgnoring it.')")
+                    continue    
+
+                # Check position
+                try:
+                    exclude_pos = tuple( [int(p) for p in pos.split(",")] )
+                except Exception as e:
+                    log.warning(f"Error while trying to convert a position (letter) into a int: '{pos}':\n{e}")
+                    continue    
+
+                if letter in target.yellow_letters.keys():
+                    log.warning(f"The letter '{letter}' was specified twice, ignoring the second time {exclude_pos}.")
+                    continue
+                log.debug(f"Adding letter '{letter}' to exclude at position {exclude_pos}")
+                target.yellow_letters[letter] = exclude_pos
+        else:
+            log.debug("No yellow letters")  
+
+        # Reconstruct grey letters
+        if grey_letters != "":
+            for pos,letter in enumerate(grey_letters,start=1):
+                if not letter in _ALL_LETTERS:
+                    log.warning(f"Unrecognized letter {letter} in option invert-match ('{letter} [{pos}]').\nIgnoring it.")
+                    continue    
+
+                log.debug(f"Adding letter '{letter}' to exclude set.")
+                target.grey_letters.append(letter)
+        else:
+            log.debug("No grey letters")    
+
+        # Search
+        log.info(f"Starting to search {n_word if n_word > 0 else 'all'} words correpsonding to the following target:\n{target}\n")
+        words, tot_words = oneshot_search(db_filename,target,n_word)
+        log.info(f"Found {tot_words} correpsonding to the target!")
+
+        # Print results
+        log.info(f"Words found:\n  - "+"\n  - ".join(words))
+
+Update the *__main__.py* script to call :func:`main_search()` when the search command is invoked:
+
+.. code-block:: python
+
+    from py_utils.Logueur import ConsoleLogueurFactory
+
+    from .cli.parser import parser
+    from .cli.database import main_db
+    from .cli.search import main_search 
+
+    def main(): 
+
+        # Parse arg and create logueur
+        args = parser.parse_args()
+        log = ConsoleLogueurFactory(level=args.log_level)
+        log._messageFormat = "{body}\n" 
+
+        log.info("Hello Wordle !!\n")
+        if args.cmd == "db":
+            main_db(log,args.action,args.file,args.url)
+        elif args.cmd == "search":
+            main_search(log,
+                args.database,args.green_letters,args.yellow_letters,
+                args.grey_letters, args.n_word
+            )
+
+
+    if __name__ == "__main__":
+        main()
+
+And *voila*, the CLI application is finish ! Feel free to play with it and modify the code to test the
+:mod:`py_utils.Logueur` module as you wish!
+
+
+What is next
+------------
+
+The next step will be to develop a simple GUI application to resolve a game of Wordle ! For this, we will use the
+:mod:`py_utils.Logueur` module, but with a file output this time, coupled with a console output that will filter
+only the message from the GUI. We will also use the :mod:`py_utils.ConfigHelper` to manage the configuration of
+the GUI.

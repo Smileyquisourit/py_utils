@@ -11,9 +11,9 @@ def main_db(log:Logueur, action:str, filename:str, url:str=None):
 
     log.debug(
         "Starting database action using the following args:\n" + \
-        f"  - action = {action}\n"+ \
-        f"  - filename = {filename}\n"+ \
-        f"  - url = {url}\n"
+        f"  - {action=}\n"+ \
+        f"  - {filename=}\n"+ \
+        f"  - {url=}\n"
     )
 
     if action == "init":
